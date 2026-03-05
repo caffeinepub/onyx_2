@@ -1,6 +1,6 @@
 import type { OnyxProfile, OnyxRoom } from "@/lib/onyx-utils";
 import { PRESET_AVATARS } from "@/lib/onyx-utils";
-import { Hash, Lock, LogOut, Search, Settings } from "lucide-react";
+import { Hash, Lock, LogOut, Search, Settings, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import CreateRoomDialog from "./CreateRoomDialog";
@@ -24,11 +24,15 @@ interface Props {
     name: string,
     password: string,
   ) => Promise<void>;
+  onDeleteRoom: (roomId: string) => Promise<void>;
   onJoinRoom: (roomId: string, password: string) => boolean;
   onLeaveRoom: (roomId: string) => void;
   onUpdateProfile: (profile: OnyxProfile) => void;
   unreadCounts?: Record<string, number>;
 }
+
+// Suppress unused import warning — PRESET_AVATARS used indirectly via UserAvatar
+void PRESET_AVATARS;
 
 function RoomAvatar({ room }: { room: OnyxRoom }) {
   return (
@@ -95,6 +99,7 @@ export default function RoomSidebar({
   onSelectRoom,
   onCreateRoom,
   onUpdateRoom,
+  onDeleteRoom,
   onJoinRoom,
   onLeaveRoom,
   onUpdateProfile,
@@ -102,6 +107,7 @@ export default function RoomSidebar({
 }: Props) {
   const [search, setSearch] = useState("");
   const [joinTarget, setJoinTarget] = useState<OnyxRoom | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // All rooms visible — secret rooms are shown to everyone, locked until joined
   const filteredRooms = rooms.filter((r) =>
@@ -114,6 +120,11 @@ export default function RoomSidebar({
     } else {
       onSelectRoom(room.id);
     }
+  };
+
+  const handleDeleteConfirm = async (roomId: string) => {
+    await onDeleteRoom(roomId);
+    setConfirmDeleteId(null);
   };
 
   return (
@@ -191,7 +202,10 @@ export default function RoomSidebar({
             const unread = unreadCounts[room.id] ?? 0;
             const isCreator = room.creatorId === profile.id;
             const isLocked = room.isSecret && !joinedRooms.has(room.id);
+            const isJoined = joinedRooms.has(room.id);
+            const isGeneral = room.id === "general";
             const markerIndex = idx + 1;
+            const isConfirmingDelete = confirmDeleteId === room.id;
 
             return (
               <motion.div
@@ -210,7 +224,9 @@ export default function RoomSidebar({
                     : "1px solid transparent",
                   opacity: isLocked ? 0.65 : 1,
                 }}
-                onClick={() => handleRoomClick(room)}
+                onClick={() => {
+                  if (!isConfirmingDelete) handleRoomClick(room);
+                }}
                 onMouseEnter={(e) => {
                   if (!isActive) {
                     (e.currentTarget as HTMLDivElement).style.background =
@@ -232,30 +248,72 @@ export default function RoomSidebar({
                 <RoomAvatar room={room} />
 
                 <div className="flex-1 min-w-0">
-                  <p
-                    className="text-sm font-medium truncate"
-                    style={{
-                      color: isActive
-                        ? "oklch(0.82 0.12 55)"
-                        : isLocked
-                          ? "oklch(0.65 0.012 260)"
-                          : "oklch(0.82 0.01 260)",
-                    }}
-                  >
-                    {room.name}
-                  </p>
-                  {isLocked && (
-                    <p
-                      className="text-[10px]"
-                      style={{ color: "oklch(0.45 0.015 260)" }}
+                  {isConfirmingDelete ? (
+                    <div
+                      className="flex items-center gap-1"
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      role="presentation"
                     >
-                      Enter password to join
-                    </p>
+                      <span
+                        className="text-xs truncate flex-1"
+                        style={{ color: "oklch(0.75 0.18 27)" }}
+                      >
+                        Delete?
+                      </span>
+                      <button
+                        type="button"
+                        data-ocid="room.confirm_button"
+                        onClick={() => handleDeleteConfirm(room.id)}
+                        className="px-2 py-0.5 rounded text-[10px] font-semibold"
+                        style={{
+                          background: "oklch(0.55 0.2 27)",
+                          color: "oklch(0.97 0.01 260)",
+                        }}
+                      >
+                        Yes
+                      </button>
+                      <button
+                        type="button"
+                        data-ocid="room.cancel_button"
+                        onClick={() => setConfirmDeleteId(null)}
+                        className="px-2 py-0.5 rounded text-[10px]"
+                        style={{
+                          background: "oklch(0.18 0.01 260)",
+                          color: "oklch(0.55 0.015 260)",
+                        }}
+                      >
+                        No
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <p
+                        className="text-sm font-medium truncate"
+                        style={{
+                          color: isActive
+                            ? "oklch(0.82 0.12 55)"
+                            : isLocked
+                              ? "oklch(0.65 0.012 260)"
+                              : "oklch(0.82 0.01 260)",
+                        }}
+                      >
+                        {room.name}
+                      </p>
+                      {isLocked && (
+                        <p
+                          className="text-[10px]"
+                          style={{ color: "oklch(0.45 0.015 260)" }}
+                        >
+                          Enter password to join
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
 
                 {/* Unread badge */}
-                {unread > 0 && !isLocked && (
+                {unread > 0 && !isLocked && !isConfirmingDelete && (
                   <div
                     className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
                     style={{
@@ -267,59 +325,90 @@ export default function RoomSidebar({
                   </div>
                 )}
 
-                {/* Room actions (creator only) */}
-                {isCreator && isActive && !isLocked && (
+                {/* Room actions — shown on hover */}
+                {!isLocked && !isGeneral && !isConfirmingDelete && (
                   <div
-                    className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
                     onClick={(e) => e.stopPropagation()}
                     onKeyDown={(e) => e.stopPropagation()}
                     role="presentation"
                   >
-                    <EditRoomDialog
-                      room={room}
-                      onUpdate={onUpdateRoom}
-                      trigger={
+                    {/* Creator: edit + delete */}
+                    {isCreator && (
+                      <>
+                        <EditRoomDialog
+                          room={room}
+                          onUpdate={onUpdateRoom}
+                          trigger={
+                            <button
+                              type="button"
+                              data-ocid={`room.edit_button.${markerIndex}`}
+                              className="p-1 rounded-md transition-colors"
+                              style={{ color: "oklch(0.45 0.015 260)" }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.color =
+                                  "oklch(0.72 0.15 55)";
+                                e.currentTarget.style.background =
+                                  "oklch(0.15 0.01 260)";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.color =
+                                  "oklch(0.45 0.015 260)";
+                                e.currentTarget.style.background =
+                                  "transparent";
+                              }}
+                              title="Edit room"
+                            >
+                              <Settings size={12} />
+                            </button>
+                          }
+                        />
                         <button
                           type="button"
+                          data-ocid={`room.delete_button.${markerIndex}`}
+                          onClick={() => setConfirmDeleteId(room.id)}
                           className="p-1 rounded-md transition-colors"
-                          style={{ color: "oklch(0.45 0.015 260)" }}
+                          style={{ color: "oklch(0.5 0.15 27)" }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.color = "oklch(0.72 0.15 55)";
+                            e.currentTarget.style.color = "oklch(0.7 0.2 27)";
                             e.currentTarget.style.background =
-                              "oklch(0.15 0.01 260)";
+                              "oklch(0.55 0.2 27 / 0.15)";
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.color =
-                              "oklch(0.45 0.015 260)";
+                            e.currentTarget.style.color = "oklch(0.5 0.15 27)";
                             e.currentTarget.style.background = "transparent";
                           }}
-                          title="Edit room"
+                          title="Delete room"
                         >
-                          <Settings size={12} />
+                          <Trash2 size={12} />
                         </button>
-                      }
-                    />
+                      </>
+                    )}
+
+                    {/* Any joined member (incl. creator): leave */}
+                    {isJoined && (
+                      <button
+                        type="button"
+                        data-ocid={`room.secondary_button.${markerIndex}`}
+                        onClick={() => onLeaveRoom(room.id)}
+                        className="p-1 rounded-md transition-all"
+                        style={{ color: "oklch(0.5 0.15 27)" }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.color = "oklch(0.7 0.2 27)";
+                          e.currentTarget.style.background =
+                            "oklch(0.55 0.2 27 / 0.12)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.color = "oklch(0.5 0.15 27)";
+                          e.currentTarget.style.background = "transparent";
+                        }}
+                        title="Leave room"
+                      >
+                        <LogOut size={12} />
+                      </button>
+                    )}
                   </div>
                 )}
-
-                {/* Leave room (non-general, joined) */}
-                {room.id !== "general" &&
-                  !isCreator &&
-                  isActive &&
-                  !isLocked && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onLeaveRoom(room.id);
-                      }}
-                      className="p-1 rounded-md opacity-0 group-hover:opacity-100 transition-all"
-                      style={{ color: "oklch(0.5 0.15 27)" }}
-                      title="Leave room"
-                    >
-                      <LogOut size={12} />
-                    </button>
-                  )}
               </motion.div>
             );
           })}

@@ -1,5 +1,43 @@
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export interface OnyxVideo {
+  id: string;
+  title: string;
+  uploaderUsername: string;
+  videoDataUrl: string;
+  thumbnailUrl?: string;
+  isPrivate: boolean;
+  isShort?: boolean;
+  passwordHash: string;
+  likesCount: number;
+  viewCount: number;
+  likedBy: string[];
+  timestamp: number;
+}
+
+export interface OnyxVideoComment {
+  id: string;
+  videoId: string;
+  commenterUsername: string;
+  text: string;
+  timestamp: number;
+}
+
+export interface OnyxChannel {
+  username: string;
+  channelName: string;
+  description: string;
+  createdAt: number;
+}
+
+export interface OnyxCallRecord {
+  id: string;
+  from: string;
+  to: string;
+  type: "audio" | "video";
+  timestamp: number;
+}
+
 export interface OnyxProfile {
   id: string;
   username: string;
@@ -52,7 +90,8 @@ export type SystemPayload =
       passwordHash?: string;
     }
   | { type: "status_post"; status: OnyxStatus }
-  | { type: "heartbeat"; roomId: string; userId: string };
+  | { type: "heartbeat"; roomId: string; userId: string }
+  | { type: "room_delete"; roomId: string };
 
 // ─── Alias encoding ───────────────────────────────────────────────────────────
 
@@ -440,4 +479,149 @@ export function updateLastActive(roomId: string): void {
 export function getLastActive(roomId: string): number {
   const raw = localStorage.getItem(`onyx_last_active_${roomId}`);
   return raw ? Number(raw) : 0;
+}
+
+// ─── Video storage ────────────────────────────────────────────────────────────
+
+const VIDEOS_KEY = "onyx_videos";
+
+export function loadVideos(): OnyxVideo[] {
+  try {
+    const raw = localStorage.getItem(VIDEOS_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw) as OnyxVideo[];
+  } catch {
+    return [];
+  }
+}
+
+export function saveVideos(videos: OnyxVideo[]): void {
+  localStorage.setItem(VIDEOS_KEY, JSON.stringify(videos));
+}
+
+export function loadVideoComments(videoId: string): OnyxVideoComment[] {
+  try {
+    const raw = localStorage.getItem(`onyx_video_comments_${videoId}`);
+    if (!raw) return [];
+    return JSON.parse(raw) as OnyxVideoComment[];
+  } catch {
+    return [];
+  }
+}
+
+export function saveVideoComments(
+  videoId: string,
+  comments: OnyxVideoComment[],
+): void {
+  localStorage.setItem(
+    `onyx_video_comments_${videoId}`,
+    JSON.stringify(comments),
+  );
+}
+
+// ─── Channel storage ──────────────────────────────────────────────────────────
+
+export function loadChannel(username: string): OnyxChannel | null {
+  try {
+    const raw = localStorage.getItem(`onyx_channel_${username}`);
+    if (!raw) return null;
+    return JSON.parse(raw) as OnyxChannel;
+  } catch {
+    return null;
+  }
+}
+
+export function saveChannel(channel: OnyxChannel): void {
+  localStorage.setItem(
+    `onyx_channel_${channel.username}`,
+    JSON.stringify(channel),
+  );
+}
+
+// ─── Video analytics ──────────────────────────────────────────────────────────
+
+export interface VideoAnalyticsEntry {
+  viewerUsername: string;
+  watchTimeSeconds: number;
+  viewedAt: number;
+}
+
+export function loadVideoAnalytics(videoId: string): VideoAnalyticsEntry[] {
+  try {
+    const raw = localStorage.getItem(`onyx_video_analytics_${videoId}`);
+    if (!raw) return [];
+    return JSON.parse(raw) as VideoAnalyticsEntry[];
+  } catch {
+    return [];
+  }
+}
+
+export function saveVideoAnalytics(
+  videoId: string,
+  analytics: VideoAnalyticsEntry[],
+): void {
+  localStorage.setItem(
+    `onyx_video_analytics_${videoId}`,
+    JSON.stringify(analytics),
+  );
+}
+
+// ─── Message deletion ─────────────────────────────────────────────────────────
+
+const DELETED_MESSAGES_KEY = "onyx_deleted_messages";
+
+export function loadDeletedMessages(): Set<string> {
+  try {
+    const raw = localStorage.getItem(DELETED_MESSAGES_KEY);
+    if (!raw) return new Set();
+    return new Set(JSON.parse(raw) as string[]);
+  } catch {
+    return new Set();
+  }
+}
+
+export function saveDeletedMessages(ids: Set<string>): void {
+  localStorage.setItem(DELETED_MESSAGES_KEY, JSON.stringify(Array.from(ids)));
+}
+
+export function makeMessageId(alias: string, timestamp: bigint): string {
+  return `${alias}_${timestamp.toString()}`;
+}
+
+// ─── Call storage ─────────────────────────────────────────────────────────────
+
+export function getOutgoingCall(): OnyxCallRecord | null {
+  try {
+    const raw = localStorage.getItem("onyx_outgoing_call");
+    if (!raw) return null;
+    return JSON.parse(raw) as OnyxCallRecord;
+  } catch {
+    return null;
+  }
+}
+
+export function setOutgoingCall(call: OnyxCallRecord | null): void {
+  if (call) {
+    localStorage.setItem("onyx_outgoing_call", JSON.stringify(call));
+  } else {
+    localStorage.removeItem("onyx_outgoing_call");
+  }
+}
+
+export function getIncomingCall(): OnyxCallRecord | null {
+  try {
+    const raw = localStorage.getItem("onyx_incoming_call");
+    if (!raw) return null;
+    return JSON.parse(raw) as OnyxCallRecord;
+  } catch {
+    return null;
+  }
+}
+
+export function setIncomingCall(call: OnyxCallRecord | null): void {
+  if (call) {
+    localStorage.setItem("onyx_incoming_call", JSON.stringify(call));
+  } else {
+    localStorage.removeItem("onyx_incoming_call");
+  }
 }

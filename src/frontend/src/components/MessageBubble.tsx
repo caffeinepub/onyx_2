@@ -6,14 +6,17 @@ import {
   isMediaContent,
 } from "@/lib/onyx-utils";
 import type { OnyxProfile } from "@/lib/onyx-utils";
+import { Trash2 } from "lucide-react";
 import { motion } from "motion/react";
 
 interface Props {
   message: Message;
   username: string;
   isOwn: boolean;
+  isDeleted?: boolean;
   senderProfile?: { avatarUrl: string; avatarType: string };
   index: number;
+  onDelete?: () => void;
 }
 
 function AvatarBubble({
@@ -76,8 +79,10 @@ export default function MessageBubble({
   message,
   username,
   isOwn,
+  isDeleted,
   senderProfile,
   index,
+  onDelete,
 }: Props) {
   const media = isMediaContent(message.content);
   const isEmoji = !media && isEmojiOnly(message.content);
@@ -94,7 +99,7 @@ export default function MessageBubble({
       }
       animate={{ opacity: 1, x: 0, scale: 1 }}
       transition={{ duration: 0.22, ease: "easeOut" }}
-      className={`flex gap-2.5 items-end max-w-[80%] ${isOwn ? "ml-auto flex-row-reverse" : "mr-auto"}`}
+      className={`group flex gap-2.5 items-end max-w-[80%] ${isOwn ? "ml-auto flex-row-reverse" : "mr-auto"}`}
     >
       {/* Avatar */}
       {!isOwn && (
@@ -104,6 +109,23 @@ export default function MessageBubble({
           avatarType={senderProfile?.avatarType}
           size={28}
         />
+      )}
+
+      {/* Delete button (own messages only, left of bubble since own messages are right-aligned) */}
+      {isOwn && onDelete && !isDeleted && (
+        <button
+          type="button"
+          data-ocid={`chat.delete_button.${markerIndex}`}
+          onClick={onDelete}
+          className="opacity-0 group-hover:opacity-100 transition-opacity self-center w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+          style={{
+            background: "oklch(0.55 0.2 27 / 0.12)",
+            color: "oklch(0.55 0.2 27)",
+          }}
+          title="Delete message"
+        >
+          <Trash2 size={11} />
+        </button>
       )}
 
       {/* Bubble */}
@@ -120,75 +142,99 @@ export default function MessageBubble({
           </span>
         )}
 
-        <div
-          className="relative rounded-2xl overflow-hidden"
-          style={{
-            background: isOwn
-              ? "oklch(0.72 0.15 55 / 0.15)"
-              : "oklch(0.15 0.01 260)",
-            border: isOwn
-              ? "1px solid oklch(0.72 0.15 55 / 0.3)"
-              : "1px solid oklch(0.22 0.01 260)",
-            borderRadius: isOwn ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-            minWidth: "80px",
-          }}
-        >
-          {/* Media content */}
-          {media ? (
-            <div className="p-1">
-              {media.mimeType.startsWith("video") ? (
-                // biome-ignore lint/a11y/useMediaCaption: user-uploaded video
-                <video
-                  src={media.dataUrl}
-                  controls
-                  className="rounded-xl max-w-[240px] max-h-[200px]"
-                />
-              ) : (
-                <img
-                  src={media.dataUrl}
-                  alt="media"
-                  className="rounded-xl max-w-[240px] max-h-[200px] object-cover"
-                />
-              )}
-              <div className="px-2 pb-1.5">
-                <span
-                  className="text-[10px] block text-right mt-1"
+        {isDeleted ? (
+          /* Deleted message placeholder */
+          <div
+            className="px-3 py-2 rounded-2xl"
+            style={{
+              background: isOwn
+                ? "oklch(0.72 0.15 55 / 0.06)"
+                : "oklch(0.13 0.01 260)",
+              border: isOwn
+                ? "1px solid oklch(0.72 0.15 55 / 0.12)"
+                : "1px solid oklch(0.18 0.01 260)",
+              borderRadius: isOwn ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+              minWidth: "80px",
+            }}
+          >
+            <p
+              className="text-xs italic"
+              style={{ color: "oklch(0.35 0.01 260)" }}
+            >
+              Message deleted
+            </p>
+          </div>
+        ) : (
+          <div
+            className="relative rounded-2xl overflow-hidden"
+            style={{
+              background: isOwn
+                ? "oklch(0.72 0.15 55 / 0.15)"
+                : "oklch(0.15 0.01 260)",
+              border: isOwn
+                ? "1px solid oklch(0.72 0.15 55 / 0.3)"
+                : "1px solid oklch(0.22 0.01 260)",
+              borderRadius: isOwn ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+              minWidth: "80px",
+            }}
+          >
+            {/* Media content */}
+            {media ? (
+              <div className="p-1">
+                {media.mimeType.startsWith("video") ? (
+                  // biome-ignore lint/a11y/useMediaCaption: user-uploaded video
+                  <video
+                    src={media.dataUrl}
+                    controls
+                    className="rounded-xl max-w-[240px] max-h-[200px]"
+                  />
+                ) : (
+                  <img
+                    src={media.dataUrl}
+                    alt="media"
+                    className="rounded-xl max-w-[240px] max-h-[200px] object-cover"
+                  />
+                )}
+                <div className="px-2 pb-1.5">
+                  <span
+                    className="text-[10px] block text-right mt-1"
+                    style={{
+                      color: isOwn
+                        ? "oklch(0.72 0.15 55 / 0.7)"
+                        : "oklch(0.45 0.015 260)",
+                    }}
+                  >
+                    {timestamp}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="px-3 py-2 pb-5">
+                <p
+                  className={`leading-relaxed break-words ${isEmoji ? "text-3xl" : "text-sm"}`}
                   style={{
                     color: isOwn
-                      ? "oklch(0.72 0.15 55 / 0.7)"
-                      : "oklch(0.45 0.015 260)",
+                      ? "oklch(0.93 0.01 260)"
+                      : "oklch(0.88 0.01 260)",
+                  }}
+                >
+                  {message.content}
+                </p>
+                {/* Timestamp inside bubble, bottom-right */}
+                <span
+                  className="absolute bottom-1.5 right-2.5 text-[10px]"
+                  style={{
+                    color: isOwn
+                      ? "oklch(0.72 0.15 55 / 0.6)"
+                      : "oklch(0.4 0.012 260)",
                   }}
                 >
                   {timestamp}
                 </span>
               </div>
-            </div>
-          ) : (
-            <div className="px-3 py-2 pb-5">
-              <p
-                className={`leading-relaxed break-words ${isEmoji ? "text-3xl" : "text-sm"}`}
-                style={{
-                  color: isOwn
-                    ? "oklch(0.93 0.01 260)"
-                    : "oklch(0.88 0.01 260)",
-                }}
-              >
-                {message.content}
-              </p>
-              {/* Timestamp inside bubble, bottom-right */}
-              <span
-                className="absolute bottom-1.5 right-2.5 text-[10px]"
-                style={{
-                  color: isOwn
-                    ? "oklch(0.72 0.15 55 / 0.6)"
-                    : "oklch(0.4 0.012 260)",
-                }}
-              >
-                {timestamp}
-              </span>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Own avatar */}

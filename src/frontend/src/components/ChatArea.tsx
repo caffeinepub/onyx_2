@@ -4,6 +4,9 @@ import {
   decodeAlias,
   encodeAlias,
   fileToDataUrl,
+  loadDeletedMessages,
+  makeMessageId,
+  saveDeletedMessages,
   updateLastActive,
 } from "@/lib/onyx-utils";
 import { ChevronRight, Hash, Lock, Paperclip, Send } from "lucide-react";
@@ -46,6 +49,9 @@ export default function ChatArea({
   onOpenStatus,
 }: Props) {
   const [inputText, setInputText] = useState("");
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(() =>
+    loadDeletedMessages(),
+  );
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -81,6 +87,19 @@ export default function ChatArea({
       updateLastActive(room.id);
     }
   }, [messages.length, room.id]);
+
+  const handleDeleteMessage = useCallback(
+    (alias: string, timestamp: bigint) => {
+      const id = makeMessageId(alias, timestamp);
+      setDeletedIds((prev) => {
+        const next = new Set(prev);
+        next.add(id);
+        saveDeletedMessages(next);
+        return next;
+      });
+    },
+    [],
+  );
 
   const handleSend = useCallback(async () => {
     const content = inputText.trim();
@@ -249,12 +268,15 @@ export default function ChatArea({
               const decoded = decodeAlias(msg.alias);
               const username = decoded?.username ?? msg.alias;
               const isOwn = username === profile.username;
+              const msgId = makeMessageId(msg.alias, msg.timestamp);
+              const isDeleted = deletedIds.has(msgId);
               return (
                 <MessageBubble
                   key={`${msg.alias}-${msg.timestamp}`}
                   message={msg}
                   username={username}
                   isOwn={isOwn}
+                  isDeleted={isDeleted}
                   senderProfile={
                     isOwn
                       ? {
@@ -264,6 +286,11 @@ export default function ChatArea({
                       : undefined
                   }
                   index={i}
+                  onDelete={
+                    isOwn
+                      ? () => handleDeleteMessage(msg.alias, msg.timestamp)
+                      : undefined
+                  }
                 />
               );
             })}

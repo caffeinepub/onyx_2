@@ -42,6 +42,7 @@ export interface OnyxActions {
     password: string,
   ) => Promise<void>;
   updateRoom: (roomId: string, name: string, password: string) => Promise<void>;
+  deleteRoom: (roomId: string) => Promise<void>;
   joinRoom: (roomId: string, password: string) => boolean;
   leaveRoom: (roomId: string) => void;
   addStatus: (status: OnyxStatus) => Promise<void>;
@@ -128,6 +129,12 @@ export function useOnyx(): OnyxState & OnyxActions {
           statusMap.set(p.status.id, p.status);
           statusesUpdated = true;
         }
+      } else if (payload.type === "room_delete") {
+        const p = payload as { type: "room_delete"; roomId: string };
+        if (roomMap.has(p.roomId) && p.roomId !== "general") {
+          roomMap.delete(p.roomId);
+          roomsUpdated = true;
+        }
       }
     }
 
@@ -190,13 +197,17 @@ export function useOnyx(): OnyxState & OnyxActions {
         return next;
       });
 
-      // Join the room
-      setJoinedRooms((prev) => {
-        const next = new Set(prev);
-        next.add(room.id);
-        saveJoinedRooms(next);
-        return next;
-      });
+      // Only auto-join public rooms — secret rooms require password entry
+      if (!isSecret) {
+        setJoinedRooms((prev) => {
+          const next = new Set(prev);
+          next.add(room.id);
+          saveJoinedRooms(next);
+          return next;
+        });
+        setActiveRoomId(room.id);
+      }
+      // Secret rooms: creator must enter password to join, just like everyone else
 
       // Broadcast to backend
       const payload: SystemPayload = { type: "room_create", room };
@@ -204,8 +215,6 @@ export function useOnyx(): OnyxState & OnyxActions {
         alias: "__SYSTEM__",
         content: JSON.stringify(payload),
       });
-
-      setActiveRoomId(room.id);
     },
     [profile, postMessageMutation],
   );
@@ -279,6 +288,42 @@ export function useOnyx(): OnyxState & OnyxActions {
     setActiveRoomId((current) => (current === roomId ? "general" : current));
   }, []);
 
+  const deleteRoom = useCallback(
+    async (roomId: string) => {
+      if (!profile) return;
+      if (roomId === "general") return;
+      const room = rooms.find((r) => r.id === roomId);
+      if (!room || room.creatorId !== profile.id) return;
+
+      // Remove from local rooms state
+      setRooms((prev) => {
+        const next = prev.filter((r) => r.id !== roomId);
+        saveRooms(next);
+        return next;
+      });
+
+      // Remove from joinedRooms if present
+      setJoinedRooms((prev) => {
+        if (!prev.has(roomId)) return prev;
+        const next = new Set(prev);
+        next.delete(roomId);
+        saveJoinedRooms(next);
+        return next;
+      });
+
+      // Switch to general if this was the active room
+      setActiveRoomId((current) => (current === roomId ? "general" : current));
+
+      // Broadcast deletion
+      const payload: SystemPayload = { type: "room_delete", roomId };
+      await postMessageMutation.mutateAsync({
+        alias: "__SYSTEM__",
+        content: JSON.stringify(payload),
+      });
+    },
+    [profile, rooms, postMessageMutation],
+  );
+
   const addStatus = useCallback(
     async (status: OnyxStatus) => {
       setStatuses((prev) => {
@@ -332,6 +377,7 @@ export function useOnyx(): OnyxState & OnyxActions {
     setActiveRoom,
     createRoom,
     updateRoom,
+    deleteRoom,
     joinRoom,
     leaveRoom,
     addStatus,
