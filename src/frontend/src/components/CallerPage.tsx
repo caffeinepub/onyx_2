@@ -1064,7 +1064,7 @@ export default function CallerPage({ profile, onUpdateProfile }: Props) {
         {/* Input display */}
         <div className="w-full space-y-2">
           <div
-            className="w-full rounded-2xl px-4 py-3 flex items-center gap-2"
+            className="w-full rounded-2xl px-4 py-3 flex items-center gap-2 relative"
             style={{
               background: "oklch(0.1 0.008 260)",
               border: "1px solid oklch(0.2 0.01 260)",
@@ -1106,6 +1106,31 @@ export default function CallerPage({ profile, onUpdateProfile }: Props) {
                 ⌫
               </button>
             )}
+            {/* Call button — appears in top-right when username is typed */}
+            <AnimatePresence>
+              {canCall && (
+                <motion.button
+                  type="button"
+                  data-ocid="caller.primary_button"
+                  initial={{ opacity: 0, scale: 0.7 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.7 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                  whileTap={{ scale: 0.92 }}
+                  onClick={handleCall}
+                  className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all"
+                  style={{
+                    background: "oklch(0.55 0.18 142)",
+                    boxShadow: "0 3px 16px oklch(0.55 0.18 142 / 0.55)",
+                  }}
+                >
+                  <PhoneCall
+                    size={18}
+                    style={{ color: "oklch(0.97 0.01 260)" }}
+                  />
+                </motion.button>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Country chip */}
@@ -1194,24 +1219,6 @@ export default function CallerPage({ profile, onUpdateProfile }: Props) {
             </motion.button>
           ))}
         </div>
-
-        {/* Call button */}
-        <motion.button
-          type="button"
-          data-ocid="caller.primary_button"
-          whileTap={{ scale: 0.95 }}
-          onClick={handleCall}
-          disabled={!canCall}
-          className="w-16 h-16 rounded-full flex items-center justify-center transition-all disabled:opacity-40"
-          style={{
-            background: "oklch(0.55 0.18 142)",
-            boxShadow: canCall
-              ? "0 4px 24px oklch(0.55 0.18 142 / 0.5)"
-              : "none",
-          }}
-        >
-          <PhoneCall size={24} style={{ color: "oklch(0.97 0.01 260)" }} />
-        </motion.button>
 
         <p
           className="text-[11px] text-center"
