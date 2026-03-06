@@ -2,8 +2,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import CallerPage from "./components/CallerPage";
 import ChatArea from "./components/ChatArea";
+import DailyNewsPage from "./components/DailyNewsPage";
 import PageNav, { type PageIndex } from "./components/PageNav";
 import RoomSidebar from "./components/RoomSidebar";
 import SetupScreen from "./components/SetupScreen";
@@ -11,16 +11,20 @@ import StatusPanel from "./components/StatusPanel";
 import VSStudioPage from "./components/VSStudioPage";
 import VideoFeedPage from "./components/VideoFeedPage";
 import { useOnyx } from "./hooks/useOnyx";
-import type { OnyxProfile } from "./lib/onyx-utils";
 
-// Page map: 0=Caller, 1=Chat, 2=VideoFeed, 3=VSStudio
-const PAGE_X: Record<PageIndex, number> = { 0: -100, 1: 0, 2: 100, 3: 0 };
-const PAGE_Y: Record<PageIndex, number> = { 0: 0, 1: 0, 2: 0, 3: -100 };
+// Page map: 0=Chat, 1=VideoFeed, 2=VSStudio, 3=News
+const PAGE_X: Record<PageIndex, number> = {
+  0: 0,
+  1: 100,
+  2: 0,
+  3: 100,
+};
+const PAGE_Y: Record<PageIndex, number> = { 0: 0, 1: 0, 2: -100, 3: 0 };
 
 export default function App() {
   const onyx = useOnyx();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState<PageIndex>(1);
+  const [currentPage, setCurrentPage] = useState<PageIndex>(0);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
   const activeRoom = onyx.rooms.find((r) => r.id === onyx.activeRoomId) ??
@@ -51,14 +55,12 @@ export default function App() {
       )?.tagName?.toLowerCase();
       if (tag === "input" || tag === "textarea" || tag === "select") return;
 
-      if (e.key === "ArrowLeft") {
-        setCurrentPage(0);
-      } else if (e.key === "ArrowRight") {
-        setCurrentPage(2);
-      } else if (e.key === "ArrowUp") {
-        setCurrentPage(3);
-      } else if (e.key === "ArrowDown") {
+      if (e.key === "ArrowRight") {
         setCurrentPage(1);
+      } else if (e.key === "ArrowUp") {
+        setCurrentPage(2);
+      } else if (e.key === "ArrowDown") {
+        setCurrentPage(0);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -90,13 +92,13 @@ export default function App() {
       if (absDx > absDy && absDx > threshold) {
         // Horizontal swipe
         if (dx < 0)
-          setCurrentPage(2); // swipe left → video feed
-        else setCurrentPage(0); // swipe right → caller
+          setCurrentPage(1); // swipe left → video feed
+        else setCurrentPage(0); // swipe right → chat
       } else if (absDy > absDx && absDy > threshold) {
         // Vertical swipe
         if (dy < 0)
-          setCurrentPage(3); // swipe up → studio
-        else setCurrentPage(1); // swipe down → chat
+          setCurrentPage(2); // swipe up → studio
+        else setCurrentPage(0); // swipe down → chat
       }
     };
     window.addEventListener("touchstart", onTouchStart, { passive: true });
@@ -118,7 +120,7 @@ export default function App() {
     return <SetupScreen onComplete={onyx.completeSetup} />;
   }
 
-  const isChatPage = currentPage === 1;
+  const isChatPage = currentPage === 0;
 
   return (
     <div
@@ -245,13 +247,6 @@ export default function App() {
               }}
             >
               {currentPage === 0 && (
-                <CallerPage
-                  profile={onyx.profile!}
-                  onUpdateProfile={onyx.updateProfile}
-                />
-              )}
-
-              {currentPage === 1 && (
                 <main
                   className="flex-1 min-w-0 flex flex-col relative h-full"
                   style={{ paddingTop: "0" }}
@@ -268,9 +263,11 @@ export default function App() {
                 </main>
               )}
 
-              {currentPage === 2 && <VideoFeedPage profile={onyx.profile!} />}
+              {currentPage === 1 && <VideoFeedPage profile={onyx.profile!} />}
 
-              {currentPage === 3 && <VSStudioPage profile={onyx.profile!} />}
+              {currentPage === 2 && <VSStudioPage profile={onyx.profile!} />}
+
+              {currentPage === 3 && <DailyNewsPage profile={onyx.profile!} />}
             </motion.div>
           </AnimatePresence>
         </div>

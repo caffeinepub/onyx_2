@@ -1,8 +1,8 @@
-import { Bell, MessageSquare, Phone, Tv2, Video } from "lucide-react";
+import { Bell, MessageSquare, Newspaper, Tv2, Video } from "lucide-react";
 import { motion } from "motion/react";
 
 export type PageIndex = 0 | 1 | 2 | 3;
-// 0 = Caller (left), 1 = Chat (center), 2 = Video Feed (right), 3 = VS Studio (up)
+// 0 = Chat, 1 = Video Feed, 2 = VS Studio, 3 = News
 
 interface NavItem {
   page: PageIndex;
@@ -11,10 +11,10 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { page: 0, icon: <Phone size={18} />, label: "Call" },
-  { page: 1, icon: <MessageSquare size={18} />, label: "Chat" },
-  { page: 2, icon: <Video size={18} />, label: "Feed" },
-  { page: 3, icon: <Tv2 size={18} />, label: "Studio" },
+  { page: 0, icon: <MessageSquare size={18} />, label: "Chat" },
+  { page: 1, icon: <Video size={18} />, label: "Feed" },
+  { page: 2, icon: <Tv2 size={18} />, label: "Studio" },
+  { page: 3, icon: <Newspaper size={18} />, label: "News" },
 ];
 
 interface Props {
