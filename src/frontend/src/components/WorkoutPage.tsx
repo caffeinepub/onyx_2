@@ -15,101 +15,17 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-// ─── Keyframe animation styles ────────────────────────────────────────────────
-
-const ANIM_STYLES = `
-@keyframes pushup-body {
-  0%, 100% { transform: translateY(0px) rotate(-8deg); }
-  50%       { transform: translateY(-12px) rotate(-8deg); }
-}
-@keyframes pushup-arm {
-  0%, 100% { transform: rotate(0deg); transform-origin: 50% 0; }
-  50%       { transform: rotate(-30deg); transform-origin: 50% 0; }
-}
-@keyframes pullup-body {
-  0%, 100% { transform: translateY(14px); }
-  50%       { transform: translateY(0px); }
-}
-@keyframes pullup-arm {
-  0%, 100% { transform: rotate(20deg); transform-origin: 50% 0; }
-  50%       { transform: rotate(-20deg); transform-origin: 50% 0; }
-}
-@keyframes dip-body {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(12px); }
-}
-@keyframes dip-arm {
-  0%, 100% { transform: rotate(0deg); transform-origin: 50% 0; }
-  50%       { transform: rotate(30deg); transform-origin: 50% 0; }
-}
-@keyframes squat-body {
-  0%, 100% { transform: translateY(0px) scaleY(1); }
-  50%       { transform: translateY(10px) scaleY(0.85); }
-}
-@keyframes squat-leg {
-  0%, 100% { transform: rotate(0deg); transform-origin: 0 0; }
-  50%       { transform: rotate(45deg); transform-origin: 0 0; }
-}
-@keyframes lunge-front-leg {
-  0%, 100% { transform: rotate(0deg); transform-origin: 50% 0; }
-  50%       { transform: rotate(35deg); transform-origin: 50% 0; }
-}
-@keyframes lunge-back-leg {
-  0%, 100% { transform: rotate(0deg); transform-origin: 50% 0; }
-  50%       { transform: rotate(-35deg); transform-origin: 50% 0; }
-}
-@keyframes lunge-body {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(8px); }
-}
-@keyframes plank-breathe {
-  0%, 100% { transform: scaleY(1) rotate(-10deg); }
-  50%       { transform: scaleY(1.04) rotate(-10deg); }
-}
-@keyframes plank-arm-breathe {
-  0%, 100% { transform: rotate(0deg); }
-  50%       { transform: rotate(-3deg); }
-}
-@keyframes handstand-sway {
-  0%, 100% { transform: rotate(0deg); transform-origin: 50% 100%; }
-  33%       { transform: rotate(4deg); transform-origin: 50% 100%; }
-  66%       { transform: rotate(-4deg); transform-origin: 50% 100%; }
-}
-@keyframes stretch-lean {
-  0%, 100% { transform: rotate(0deg); transform-origin: 50% 80%; }
-  50%       { transform: rotate(25deg); transform-origin: 50% 80%; }
-}
-@keyframes stretch-arm {
-  0%, 100% { transform: rotate(0deg); transform-origin: 0 0; }
-  50%       { transform: rotate(40deg); transform-origin: 0 0; }
-}
-@keyframes head-bob {
-  0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-2px); }
-}
-`;
-
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type Category =
   | "All"
-  | "Push"
-  | "Pull"
-  | "Dips"
+  | "Chest"
+  | "Back"
+  | "Shoulders"
+  | "Arms"
   | "Legs"
   | "Core"
-  | "Handstand"
-  | "Mobility";
-
-type AnimKey =
-  | "push"
-  | "pull"
-  | "dip"
-  | "squat"
-  | "lunge"
-  | "plank"
-  | "handstand"
-  | "stretch";
+  | "Cardio";
 
 type Difficulty = "Beginner" | "Intermediate" | "Advanced";
 
@@ -122,7 +38,6 @@ interface Exercise {
   reps: string;
   difficulty: Difficulty;
   restSeconds: number;
-  animKey: AnimKey;
   steps: string[];
   formCues: string[];
 }
@@ -142,1529 +57,550 @@ interface WorkoutLogEntry {
   durationMinutes: number;
 }
 
-// ─── SVG Stick Figure Animations ─────────────────────────────────────────────
-
-const GOLD = "oklch(0.72 0.15 55)";
-const GOLD_DIM = "oklch(0.5 0.1 55)";
-
-function PushAnimation() {
-  return (
-    <svg viewBox="0 0 80 80" width="80" height="80" aria-hidden="true">
-      {/* Ground */}
-      <line
-        x1="8"
-        y1="62"
-        x2="72"
-        y2="62"
-        stroke={GOLD_DIM}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        opacity="0.4"
-      />
-      {/* Body (horizontal plank) */}
-      <g style={{ animation: "pushup-body 1.6s ease-in-out infinite" }}>
-        {/* Head */}
-        <circle
-          cx="62"
-          cy="46"
-          r="5"
-          fill="none"
-          stroke={GOLD}
-          strokeWidth="1.8"
-          style={{ animation: "head-bob 1.6s ease-in-out infinite" }}
-        />
-        {/* Body line */}
-        <line
-          x1="57"
-          y1="48"
-          x2="22"
-          y2="55"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        {/* Left arm */}
-        <g
-          style={{
-            animation: "pushup-arm 1.6s ease-in-out infinite",
-            transformOrigin: "50px 52px",
-          }}
-        >
-          <line
-            x1="50"
-            y1="52"
-            x2="45"
-            y2="62"
-            stroke={GOLD}
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </g>
-        {/* Right arm */}
-        <g
-          style={{
-            animation: "pushup-arm 1.6s ease-in-out infinite 0.1s",
-            transformOrigin: "35px 54px",
-          }}
-        >
-          <line
-            x1="35"
-            y1="54"
-            x2="30"
-            y2="62"
-            stroke={GOLD}
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </g>
-        {/* Legs */}
-        <line
-          x1="22"
-          y1="55"
-          x2="17"
-          y2="62"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        <line
-          x1="22"
-          y1="55"
-          x2="14"
-          y2="61"
-          stroke={GOLD}
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          opacity="0.6"
-        />
-      </g>
-    </svg>
-  );
-}
-
-function PullAnimation() {
-  return (
-    <svg viewBox="0 0 80 80" width="80" height="80" aria-hidden="true">
-      {/* Bar */}
-      <line
-        x1="15"
-        y1="14"
-        x2="65"
-        y2="14"
-        stroke={GOLD_DIM}
-        strokeWidth="3"
-        strokeLinecap="round"
-        opacity="0.5"
-      />
-      <rect
-        x="13"
-        y="10"
-        width="6"
-        height="8"
-        rx="2"
-        fill={GOLD_DIM}
-        opacity="0.3"
-      />
-      <rect
-        x="61"
-        y="10"
-        width="6"
-        height="8"
-        rx="2"
-        fill={GOLD_DIM}
-        opacity="0.3"
-      />
-      {/* Body */}
-      <g style={{ animation: "pullup-body 1.8s ease-in-out infinite" }}>
-        {/* Head */}
-        <circle
-          cx="40"
-          cy="26"
-          r="5.5"
-          fill="none"
-          stroke={GOLD}
-          strokeWidth="1.8"
-        />
-        {/* Body */}
-        <line
-          x1="40"
-          y1="32"
-          x2="40"
-          y2="52"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        {/* Arms */}
-        <g
-          style={{
-            animation: "pullup-arm 1.8s ease-in-out infinite",
-            transformOrigin: "32px 20px",
-          }}
-        >
-          <line
-            x1="40"
-            y1="32"
-            x2="28"
-            y2="18"
-            stroke={GOLD}
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </g>
-        <g
-          style={{
-            animation: "pullup-arm 1.8s ease-in-out infinite",
-            transformOrigin: "48px 20px",
-          }}
-        >
-          <line
-            x1="40"
-            y1="32"
-            x2="52"
-            y2="18"
-            stroke={GOLD}
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </g>
-        {/* Legs */}
-        <line
-          x1="40"
-          y1="52"
-          x2="34"
-          y2="65"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        <line
-          x1="40"
-          y1="52"
-          x2="46"
-          y2="65"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-      </g>
-    </svg>
-  );
-}
-
-function DipAnimation() {
-  return (
-    <svg viewBox="0 0 80 80" width="80" height="80" aria-hidden="true">
-      {/* Parallel bars */}
-      <line
-        x1="18"
-        y1="28"
-        x2="18"
-        y2="65"
-        stroke={GOLD_DIM}
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        opacity="0.4"
-      />
-      <line
-        x1="62"
-        y1="28"
-        x2="62"
-        y2="65"
-        stroke={GOLD_DIM}
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        opacity="0.4"
-      />
-      <line
-        x1="12"
-        y1="28"
-        x2="24"
-        y2="28"
-        stroke={GOLD_DIM}
-        strokeWidth="3"
-        strokeLinecap="round"
-        opacity="0.5"
-      />
-      <line
-        x1="56"
-        y1="28"
-        x2="68"
-        y2="28"
-        stroke={GOLD_DIM}
-        strokeWidth="3"
-        strokeLinecap="round"
-        opacity="0.5"
-      />
-      {/* Body */}
-      <g style={{ animation: "dip-body 1.6s ease-in-out infinite" }}>
-        {/* Head */}
-        <circle
-          cx="40"
-          cy="15"
-          r="5.5"
-          fill="none"
-          stroke={GOLD}
-          strokeWidth="1.8"
-        />
-        {/* Body */}
-        <line
-          x1="40"
-          y1="21"
-          x2="40"
-          y2="40"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        {/* Arms to bars */}
-        <g
-          style={{
-            animation: "dip-arm 1.6s ease-in-out infinite",
-            transformOrigin: "22px 28px",
-          }}
-        >
-          <line
-            x1="40"
-            y1="26"
-            x2="18"
-            y2="28"
-            stroke={GOLD}
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </g>
-        <g
-          style={{
-            animation: "dip-arm 1.6s ease-in-out infinite",
-            transformOrigin: "58px 28px",
-          }}
-        >
-          <line
-            x1="40"
-            y1="26"
-            x2="62"
-            y2="28"
-            stroke={GOLD}
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </g>
-        {/* Legs */}
-        <line
-          x1="40"
-          y1="40"
-          x2="35"
-          y2="55"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        <line
-          x1="40"
-          y1="40"
-          x2="45"
-          y2="55"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-      </g>
-    </svg>
-  );
-}
-
-function SquatAnimation() {
-  return (
-    <svg viewBox="0 0 80 80" width="80" height="80" aria-hidden="true">
-      {/* Ground */}
-      <line
-        x1="8"
-        y1="72"
-        x2="72"
-        y2="72"
-        stroke={GOLD_DIM}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        opacity="0.4"
-      />
-      {/* Body */}
-      <g style={{ animation: "squat-body 1.8s ease-in-out infinite" }}>
-        {/* Head */}
-        <circle
-          cx="40"
-          cy="16"
-          r="5.5"
-          fill="none"
-          stroke={GOLD}
-          strokeWidth="1.8"
-        />
-        {/* Torso */}
-        <line
-          x1="40"
-          y1="22"
-          x2="40"
-          y2="42"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        {/* Arms out */}
-        <line
-          x1="40"
-          y1="28"
-          x2="22"
-          y2="34"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        <line
-          x1="40"
-          y1="28"
-          x2="58"
-          y2="34"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        {/* Left leg */}
-        <g
-          style={{
-            animation: "squat-leg 1.8s ease-in-out infinite",
-            transformOrigin: "36px 42px",
-          }}
-        >
-          <line
-            x1="36"
-            y1="42"
-            x2="30"
-            y2="57"
-            stroke={GOLD}
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-          <line
-            x1="30"
-            y1="57"
-            x2="22"
-            y2="72"
-            stroke={GOLD}
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </g>
-        {/* Right leg */}
-        <g
-          style={{
-            animation: "squat-leg 1.8s ease-in-out infinite 0.05s",
-            transformOrigin: "44px 42px",
-          }}
-        >
-          <line
-            x1="44"
-            y1="42"
-            x2="50"
-            y2="57"
-            stroke={GOLD}
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-          <line
-            x1="50"
-            y1="57"
-            x2="58"
-            y2="72"
-            stroke={GOLD}
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </g>
-      </g>
-    </svg>
-  );
-}
-
-function LungeAnimation() {
-  return (
-    <svg viewBox="0 0 80 80" width="80" height="80" aria-hidden="true">
-      {/* Ground */}
-      <line
-        x1="8"
-        y1="72"
-        x2="72"
-        y2="72"
-        stroke={GOLD_DIM}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        opacity="0.4"
-      />
-      {/* Body */}
-      <g style={{ animation: "lunge-body 1.8s ease-in-out infinite" }}>
-        {/* Head */}
-        <circle
-          cx="42"
-          cy="15"
-          r="5.5"
-          fill="none"
-          stroke={GOLD}
-          strokeWidth="1.8"
-        />
-        {/* Torso */}
-        <line
-          x1="42"
-          y1="21"
-          x2="42"
-          y2="42"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        {/* Arms */}
-        <line
-          x1="42"
-          y1="28"
-          x2="28"
-          y2="36"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        <line
-          x1="42"
-          y1="28"
-          x2="56"
-          y2="36"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        {/* Front leg */}
-        <g
-          style={{
-            animation: "lunge-front-leg 1.8s ease-in-out infinite",
-            transformOrigin: "42px 42px",
-          }}
-        >
-          <line
-            x1="42"
-            y1="42"
-            x2="55"
-            y2="58"
-            stroke={GOLD}
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-          <line
-            x1="55"
-            y1="58"
-            x2="62"
-            y2="72"
-            stroke={GOLD}
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </g>
-        {/* Back leg */}
-        <g
-          style={{
-            animation: "lunge-back-leg 1.8s ease-in-out infinite",
-            transformOrigin: "42px 42px",
-          }}
-        >
-          <line
-            x1="42"
-            y1="42"
-            x2="32"
-            y2="58"
-            stroke={GOLD}
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-          <line
-            x1="32"
-            y1="58"
-            x2="20"
-            y2="72"
-            stroke={GOLD}
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </g>
-      </g>
-    </svg>
-  );
-}
-
-function PlankAnimation() {
-  return (
-    <svg viewBox="0 0 80 80" width="80" height="80" aria-hidden="true">
-      {/* Ground */}
-      <line
-        x1="8"
-        y1="64"
-        x2="72"
-        y2="64"
-        stroke={GOLD_DIM}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        opacity="0.4"
-      />
-      {/* Body in plank */}
-      <g
-        style={{
-          animation: "plank-breathe 2.2s ease-in-out infinite",
-          transformOrigin: "40px 50px",
-        }}
-      >
-        {/* Head */}
-        <circle
-          cx="62"
-          cy="44"
-          r="5.5"
-          fill="none"
-          stroke={GOLD}
-          strokeWidth="1.8"
-        />
-        {/* Body diagonal */}
-        <line
-          x1="57"
-          y1="46"
-          x2="20"
-          y2="54"
-          stroke={GOLD}
-          strokeWidth="2.5"
-          strokeLinecap="round"
-        />
-        {/* Front arm */}
-        <g style={{ animation: "plank-arm-breathe 2.2s ease-in-out infinite" }}>
-          <line
-            x1="48"
-            y1="50"
-            x2="44"
-            y2="64"
-            stroke={GOLD}
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-          <line
-            x1="44"
-            y1="64"
-            x2="36"
-            y2="64"
-            stroke={GOLD}
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </g>
-        {/* Back arm */}
-        <line
-          x1="32"
-          y1="53"
-          x2="22"
-          y2="64"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        <line
-          x1="22"
-          y1="64"
-          x2="14"
-          y2="64"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        {/* Feet */}
-        <line
-          x1="20"
-          y1="54"
-          x2="14"
-          y2="64"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-      </g>
-    </svg>
-  );
-}
-
-function HandstandAnimation() {
-  return (
-    <svg viewBox="0 0 80 80" width="80" height="80" aria-hidden="true">
-      {/* Ground / mat */}
-      <line
-        x1="12"
-        y1="68"
-        x2="68"
-        y2="68"
-        stroke={GOLD_DIM}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        opacity="0.4"
-      />
-      {/* Inverted body */}
-      <g
-        style={{
-          animation: "handstand-sway 2s ease-in-out infinite",
-          transformOrigin: "40px 64px",
-        }}
-      >
-        {/* Feet up */}
-        <circle
-          cx="40"
-          cy="10"
-          r="5.5"
-          fill="none"
-          stroke={GOLD}
-          strokeWidth="1.8"
-        />
-        {/* Legs up */}
-        <line
-          x1="40"
-          y1="16"
-          x2="36"
-          y2="32"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        <line
-          x1="40"
-          y1="16"
-          x2="44"
-          y2="32"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        {/* Torso */}
-        <line
-          x1="40"
-          y1="32"
-          x2="40"
-          y2="55"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        {/* Arms spread to ground */}
-        <line
-          x1="40"
-          y1="50"
-          x2="25"
-          y2="62"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        <line
-          x1="25"
-          y1="62"
-          x2="22"
-          y2="68"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        <line
-          x1="40"
-          y1="50"
-          x2="55"
-          y2="62"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        <line
-          x1="55"
-          y1="62"
-          x2="58"
-          y2="68"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-      </g>
-    </svg>
-  );
-}
-
-function StretchAnimation() {
-  return (
-    <svg viewBox="0 0 80 80" width="80" height="80" aria-hidden="true">
-      {/* Ground */}
-      <line
-        x1="8"
-        y1="72"
-        x2="72"
-        y2="72"
-        stroke={GOLD_DIM}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        opacity="0.4"
-      />
-      {/* Body */}
-      <g
-        style={{
-          animation: "stretch-lean 2s ease-in-out infinite",
-          transformOrigin: "40px 52px",
-        }}
-      >
-        {/* Head */}
-        <circle
-          cx="40"
-          cy="14"
-          r="5.5"
-          fill="none"
-          stroke={GOLD}
-          strokeWidth="1.8"
-        />
-        {/* Torso */}
-        <line
-          x1="40"
-          y1="20"
-          x2="40"
-          y2="44"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        {/* Stretch arm */}
-        <g
-          style={{
-            animation: "stretch-arm 2s ease-in-out infinite",
-            transformOrigin: "40px 28px",
-          }}
-        >
-          <line
-            x1="40"
-            y1="28"
-            x2="62"
-            y2="24"
-            stroke={GOLD}
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-          <line
-            x1="62"
-            y1="24"
-            x2="68"
-            y2="20"
-            stroke={GOLD}
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            opacity="0.7"
-          />
-        </g>
-        {/* Other arm */}
-        <line
-          x1="40"
-          y1="28"
-          x2="20"
-          y2="34"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        {/* Legs */}
-        <line
-          x1="40"
-          y1="44"
-          x2="32"
-          y2="60"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        <line
-          x1="32"
-          y1="60"
-          x2="28"
-          y2="72"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        <line
-          x1="40"
-          y1="44"
-          x2="48"
-          y2="60"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        <line
-          x1="48"
-          y1="60"
-          x2="52"
-          y2="72"
-          stroke={GOLD}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-      </g>
-    </svg>
-  );
-}
-
-function ExerciseAnimation({ animKey }: { animKey: AnimKey }) {
-  switch (animKey) {
-    case "push":
-      return <PushAnimation />;
-    case "pull":
-      return <PullAnimation />;
-    case "dip":
-      return <DipAnimation />;
-    case "squat":
-      return <SquatAnimation />;
-    case "lunge":
-      return <LungeAnimation />;
-    case "plank":
-      return <PlankAnimation />;
-    case "handstand":
-      return <HandstandAnimation />;
-    case "stretch":
-      return <StretchAnimation />;
-    default:
-      return <SquatAnimation />;
-  }
-}
-
 // ─── Exercise Library ─────────────────────────────────────────────────────────
 
 const EXERCISES: Exercise[] = [
-  // ── Push ──────────────────────────────────────────────────────────────────
+  // ── Chest ─────────────────────────────────────────────────────────────────
   {
-    id: "p1",
-    name: "Standard Push-Up",
-    category: "Push",
-    muscle: "Pectorals, Triceps, Shoulders",
+    id: "ch1",
+    name: "Barbell Bench Press",
+    category: "Chest",
+    muscle: "Pectorals, Triceps, Front Deltoids",
     sets: 4,
-    reps: "15–20",
-    difficulty: "Beginner",
-    restSeconds: 60,
-    animKey: "push",
-    steps: [
-      "Start in a high plank: hands shoulder-width apart, body straight from head to heels.",
-      "Lower your chest toward the floor by bending elbows at ~45° from your torso.",
-      "Stop just before your chest touches the ground — keep tension throughout.",
-      "Push through your palms to return to the start in a controlled motion.",
-    ],
-    formCues: [
-      "Keep your core braced the entire set — no sagging hips.",
-      "Gaze slightly ahead, not straight down, to keep the neck neutral.",
-    ],
-  },
-  {
-    id: "p2",
-    name: "Diamond Push-Up",
-    category: "Push",
-    muscle: "Triceps, Inner Chest",
-    sets: 3,
-    reps: "10–15",
-    difficulty: "Intermediate",
-    restSeconds: 60,
-    animKey: "push",
-    steps: [
-      "Form a diamond shape with your thumbs and index fingers directly under your chest.",
-      "Lower your chest toward your hands, elbows flaring slightly outward.",
-      "Pause briefly at the bottom, then explosively press back up.",
-    ],
-    formCues: [
-      "Wrists must stay stacked under your chest, not too far forward.",
-      "Scale to knee diamond push-ups if needed to maintain form.",
-    ],
-  },
-  {
-    id: "p3",
-    name: "Wide Push-Up",
-    category: "Push",
-    muscle: "Outer Chest, Shoulders",
-    sets: 3,
-    reps: "12–18",
-    difficulty: "Beginner",
-    restSeconds: 60,
-    animKey: "push",
-    steps: [
-      "Place hands 1.5× shoulder-width apart, fingers angled slightly outward.",
-      "Lower chest to the ground keeping elbows wide and flared.",
-      "Press back up driving through the outer part of your palms.",
-    ],
-    formCues: [
-      "Don't let your elbows collapse inward — maintain the wide angle.",
-      "Control the descent — take at least 2 seconds going down.",
-    ],
-  },
-  {
-    id: "p4",
-    name: "Pike Push-Up",
-    category: "Push",
-    muscle: "Shoulders, Triceps, Upper Chest",
-    sets: 3,
     reps: "8–12",
     difficulty: "Intermediate",
-    restSeconds: 75,
-    animKey: "push",
-    steps: [
-      "Start in a downward dog position: hands shoulder-width, hips high, straight legs.",
-      "Bend elbows to lower the top of your head toward the floor between your hands.",
-      "Press up powerfully to return to the inverted V position.",
-    ],
-    formCues: [
-      "The steeper your angle, the more shoulder work — keep progressing.",
-      "Keep legs as straight as possible to mimic overhead pressing mechanics.",
-    ],
-  },
-  {
-    id: "p5",
-    name: "Archer Push-Up",
-    category: "Push",
-    muscle: "Chest, Triceps (Unilateral)",
-    sets: 3,
-    reps: "6–10 each side",
-    difficulty: "Advanced",
     restSeconds: 90,
-    animKey: "push",
     steps: [
-      "Start wide: hands 2× shoulder-width, fingers pointing outward.",
-      "Shift your weight to one arm, bending that elbow while keeping the other arm extended.",
-      "Lower your chest toward the bent-arm side, then press back to center.",
-      "Alternate sides each rep to work both evenly.",
+      "Lie on a flat bench, feet flat on the floor. Grip the bar slightly wider than shoulder-width.",
+      "Unrack the bar and lower it slowly to mid-chest, elbows at roughly 75°.",
+      "Pause briefly at the chest without bouncing, then press explosively back to full extension.",
+      "Re-rack only when arms are fully locked out.",
     ],
     formCues: [
-      "The extended arm stays straight — it assists but doesn't bend.",
-      "This is a stepping stone to the one-arm push-up — use it consistently.",
+      "Keep shoulder blades retracted and depressed throughout — protect the shoulder joint.",
+      "Drive your feet into the floor to create full-body tension.",
     ],
   },
   {
-    id: "p6",
-    name: "Decline Push-Up",
-    category: "Push",
+    id: "ch2",
+    name: "Incline Dumbbell Press",
+    category: "Chest",
     muscle: "Upper Chest, Front Deltoids",
     sets: 3,
-    reps: "10–15",
-    difficulty: "Intermediate",
-    restSeconds: 75,
-    animKey: "push",
-    steps: [
-      "Elevate your feet on a chair, bench, or step 30–60 cm high.",
-      "Perform a standard push-up from this inclined position.",
-      "Lower chest toward the floor and press back up with full extension.",
-    ],
-    formCues: [
-      "The higher the feet, the more upper-chest and shoulder involvement.",
-      "Brace abs hard — elevated feet make core stabilisation harder.",
-    ],
-  },
-
-  // ── Pull ──────────────────────────────────────────────────────────────────
-  {
-    id: "pu1",
-    name: "Pull-Up",
-    category: "Pull",
-    muscle: "Lats, Biceps, Rear Deltoids",
-    sets: 4,
-    reps: "6–10",
-    difficulty: "Intermediate",
-    restSeconds: 90,
-    animKey: "pull",
-    steps: [
-      "Hang from a bar with palms facing away, hands shoulder-width apart.",
-      "Depress and retract your shoulder blades to initiate the pull.",
-      "Pull your chin above the bar driving elbows toward the floor.",
-      "Lower with control to a full hang — don't shorten the range.",
-    ],
-    formCues: [
-      "Don't kip or swing — dead-hang pull-ups build far more strength.",
-      "If you can't do one, do negatives: jump to the top and lower for 5 seconds.",
-    ],
-  },
-  {
-    id: "pu2",
-    name: "Wide-Grip Pull-Up",
-    category: "Pull",
-    muscle: "Latissimus Dorsi (Width)",
-    sets: 3,
-    reps: "5–8",
-    difficulty: "Advanced",
-    restSeconds: 90,
-    animKey: "pull",
-    steps: [
-      "Grip the bar 1.5–2× shoulder-width with palms facing away.",
-      "Hang with arms fully extended, then squeeze shoulder blades together.",
-      "Pull your upper chest to the bar, leading with your elbows going wide.",
-      "Pause at the top, then lower with control.",
-    ],
-    formCues: [
-      "Widen the grip gradually — too wide can stress the wrist and shoulder.",
-      "Focus on the lat stretch at full extension to maximise range.",
-    ],
-  },
-  {
-    id: "pu3",
-    name: "Close-Grip Pull-Up",
-    category: "Pull",
-    muscle: "Lower Lats, Biceps",
-    sets: 3,
-    reps: "6–10",
-    difficulty: "Intermediate",
-    restSeconds: 90,
-    animKey: "pull",
-    steps: [
-      "Grip the bar with hands 10–15 cm apart, palms facing away.",
-      "From a dead hang, initiate by bringing the shoulder blades down and back.",
-      "Pull until your chest is at bar height, elbows tracking close to your sides.",
-      "Control the descent all the way to a full hang.",
-    ],
-    formCues: [
-      "Close grip shifts stress to the lower lats and long head of the bicep.",
-      "Keep chest up — don't round your back as you fatigue.",
-    ],
-  },
-  {
-    id: "pu4",
-    name: "Chin-Up",
-    category: "Pull",
-    muscle: "Biceps, Lower Lats",
-    sets: 4,
-    reps: "8–12",
+    reps: "10–14",
     difficulty: "Beginner",
     restSeconds: 75,
-    animKey: "pull",
     steps: [
-      "Hang with palms facing you (supinated), shoulder-width apart.",
-      "Pull your chin above the bar by curling the arms and driving elbows down.",
-      "Squeeze biceps at the top, then lower fully.",
+      "Set a bench to 30–45°. Sit with a dumbbell on each knee, then kick them up as you lie back.",
+      "Press the dumbbells up until arms are fully extended, palms facing forward.",
+      "Lower with control until elbows are slightly below the bench level.",
+      "Press back up driving through the upper chest.",
     ],
     formCues: [
-      "Supinated grip recruits the biceps more — great for arm development.",
-      "Avoid shrugging your shoulders at the top — keep them depressed.",
+      "Don't flare elbows to 90° — a slight tuck (75°) reduces shoulder impingement.",
+      "Squeeze the chest hard at the top of every rep.",
     ],
   },
   {
-    id: "pu5",
-    name: "L-Sit Pull-Up",
-    category: "Pull",
-    muscle: "Lats, Core, Hip Flexors",
-    sets: 3,
-    reps: "4–8",
-    difficulty: "Advanced",
-    restSeconds: 120,
-    animKey: "pull",
-    steps: [
-      "Hang from the bar and lift your legs to 90° (parallel to the floor).",
-      "Hold the L-sit position throughout every single rep.",
-      "Pull your chin to the bar while maintaining the leg position.",
-      "Lower with control — do not let the legs drop.",
-    ],
-    formCues: [
-      "If you can't hold a full L, tuck knees to chest as a progression.",
-      "The L-sit position dramatically increases core demand on every pull.",
-    ],
-  },
-  {
-    id: "pu6",
-    name: "Australian Row",
-    category: "Pull",
-    muscle: "Rhomboids, Middle Back, Biceps",
+    id: "ch3",
+    name: "Cable Fly",
+    category: "Chest",
+    muscle: "Pectorals (Isolation)",
     sets: 3,
     reps: "12–15",
     difficulty: "Beginner",
     restSeconds: 60,
-    animKey: "pull",
     steps: [
-      "Use a low bar (hip height). Hang under it face-up with straight arms.",
-      "Pull your chest up to the bar by rowing, squeezing the shoulder blades together.",
-      "Keep your body in a straight line from head to heels throughout.",
-      "Lower until arms are fully extended.",
+      "Set cable pulleys at shoulder height. Stand centered, one foot slightly forward.",
+      "With a slight bend in both elbows, bring handles together in front of your chest in a hugging arc.",
+      "Squeeze the chest hard for 1 second at the peak contraction.",
+      "Open arms back with control — don't let cables snap you open.",
     ],
     formCues: [
-      "Lower the bar height to increase difficulty; elevate feet for even more.",
-      "Drive elbows down and back — not flared wide like a push-up.",
+      "The bend in the elbows stays fixed — never straighten or bend further during the rep.",
+      "Lean slightly forward to keep the force vector aligned with the muscle fibers.",
+    ],
+  },
+  {
+    id: "ch4",
+    name: "Chest Dips",
+    category: "Chest",
+    muscle: "Lower Chest, Triceps",
+    sets: 3,
+    reps: "10–15",
+    difficulty: "Intermediate",
+    restSeconds: 75,
+    steps: [
+      "Mount parallel bars, lean your torso forward to shift emphasis to chest.",
+      "Lower yourself until upper arms are parallel to the floor.",
+      "Press back up powerfully, maintaining the forward lean.",
+    ],
+    formCues: [
+      "The forward lean is essential — upright torso targets triceps instead.",
+      "Add a weight belt once bodyweight reps exceed 15.",
+    ],
+  },
+  {
+    id: "ch5",
+    name: "Pec Deck Machine",
+    category: "Chest",
+    muscle: "Pectorals (Isolation)",
+    sets: 3,
+    reps: "12–15",
+    difficulty: "Beginner",
+    restSeconds: 60,
+    steps: [
+      "Adjust the seat so your elbows are at shoulder height on the pads.",
+      "Bring the pads together in front of you, squeezing the chest at full contraction.",
+      "Return slowly, resisting the weight on the way back.",
+    ],
+    formCues: [
+      "Don't let the weight stack slam — control the eccentric for maximum growth.",
+      "Keep your back firmly against the pad throughout.",
     ],
   },
 
-  // ── Dips ──────────────────────────────────────────────────────────────────
+  // ── Back ──────────────────────────────────────────────────────────────────
   {
-    id: "d1",
-    name: "Parallel Bar Dips",
-    category: "Dips",
-    muscle: "Triceps, Lower Chest, Shoulders",
+    id: "ba1",
+    name: "Barbell Deadlift",
+    category: "Back",
+    muscle: "Entire Posterior Chain",
+    sets: 4,
+    reps: "5–8",
+    difficulty: "Advanced",
+    restSeconds: 120,
+    steps: [
+      "Stand with feet hip-width, bar over mid-foot. Hinge down and grip just outside your legs.",
+      "Take slack out of the bar by pulling chest up and engaging lats ('protect your armpits').",
+      "Push the floor away rather than pulling — drive hips forward as bar passes knees.",
+      "Lock out with hips forward, glutes squeezed, body tall. Hinge back to lower.",
+    ],
+    formCues: [
+      "Never round the lower back. If you lose the arch, the weight is too heavy.",
+      "Bar stays in contact with your legs the entire lift — shin scrape is normal.",
+    ],
+  },
+  {
+    id: "ba2",
+    name: "Barbell Bent-Over Row",
+    category: "Back",
+    muscle: "Lats, Rhomboids, Traps",
     sets: 4,
     reps: "8–12",
     difficulty: "Intermediate",
     restSeconds: 90,
-    animKey: "dip",
     steps: [
-      "Mount parallel bars with straight arms and a slight forward lean.",
-      "Lower yourself by bending elbows until upper arms are parallel to the floor.",
-      "Keep elbows tracked slightly back, not flaring out wide.",
-      "Press up powerfully to full arm extension.",
+      "Hip hinge to about 45°, back flat, bar hanging at arms' length.",
+      "Row the bar to your lower sternum, driving elbows back past your torso.",
+      "Squeeze shoulder blades together at the top for 1 second.",
+      "Lower under control to full arm extension.",
     ],
     formCues: [
-      "Leaning forward more targets chest; staying upright targets triceps.",
-      "Don't lock elbows aggressively at the top to protect joints.",
+      "Don't use momentum — a slight body sway is OK, full hip extension defeats the purpose.",
+      "Pull with the elbows, not the hands, to maximize back engagement.",
     ],
   },
   {
-    id: "d2",
-    name: "Bench Dips",
-    category: "Dips",
-    muscle: "Triceps, Chest",
+    id: "ba3",
+    name: "Lat Pulldown",
+    category: "Back",
+    muscle: "Latissimus Dorsi, Biceps",
+    sets: 4,
+    reps: "10–14",
+    difficulty: "Beginner",
+    restSeconds: 75,
+    steps: [
+      "Grip the bar slightly wider than shoulder-width, palms facing forward.",
+      "Lean back slightly and pull the bar to your upper chest, driving elbows down.",
+      "Squeeze the lats hard at full contraction.",
+      "Let the bar rise with control until arms are fully extended.",
+    ],
+    formCues: [
+      "Initiate with the lats — depress the shoulder blades before you pull.",
+      "Don't let the weight yank you up — control the full range.",
+    ],
+  },
+  {
+    id: "ba4",
+    name: "Seated Cable Row",
+    category: "Back",
+    muscle: "Middle Back, Rhomboids, Biceps",
     sets: 3,
-    reps: "12–20",
+    reps: "12–15",
+    difficulty: "Beginner",
+    restSeconds: 75,
+    steps: [
+      "Sit upright with a slight lean forward, handles at arm's length.",
+      "Row the handles to your lower abdomen, driving elbows back.",
+      "Squeeze your shoulder blades together and hold 1 second.",
+      "Extend arms fully with controlled resistance on the way out.",
+    ],
+    formCues: [
+      "Don't rock your torso — the movement comes from the arms and back, not hips.",
+      "Keep chest tall and shoulders down throughout.",
+    ],
+  },
+  {
+    id: "ba5",
+    name: "T-Bar Row",
+    category: "Back",
+    muscle: "Lats, Middle Back, Rear Deltoids",
+    sets: 3,
+    reps: "10–12",
+    difficulty: "Intermediate",
+    restSeconds: 90,
+    steps: [
+      "Straddle the bar, grip the handles with both hands, hinge forward to 45°.",
+      "Row the bar to your chest, keeping elbows close to your sides.",
+      "Pause at the top, then lower with a 2-second count.",
+    ],
+    formCues: [
+      "Chest pad (if available) prevents lower back compensation — use it.",
+      "Full extension at the bottom — no short-stroking the reps.",
+    ],
+  },
+
+  // ── Shoulders ─────────────────────────────────────────────────────────────
+  {
+    id: "sh1",
+    name: "Overhead Press (Barbell)",
+    category: "Shoulders",
+    muscle: "Front & Side Deltoids, Triceps",
+    sets: 4,
+    reps: "6–10",
+    difficulty: "Intermediate",
+    restSeconds: 90,
+    steps: [
+      "Grip the bar just outside shoulder-width, bar resting on upper chest.",
+      "Brace the core hard, then press the bar directly overhead to full arm extension.",
+      "Squeeze glutes and abs to prevent lower-back arch at the top.",
+      "Lower the bar back to upper chest under control.",
+    ],
+    formCues: [
+      "The bar path should be nearly vertical — move your head back slightly as it passes.",
+      "Lock out fully overhead — partial reps shortchange tricep and shoulder development.",
+    ],
+  },
+  {
+    id: "sh2",
+    name: "Dumbbell Lateral Raise",
+    category: "Shoulders",
+    muscle: "Medial Deltoids",
+    sets: 4,
+    reps: "12–15",
     difficulty: "Beginner",
     restSeconds: 60,
-    animKey: "dip",
     steps: [
-      "Sit on the edge of a bench, hands gripping the edge beside your hips.",
-      "Slide off the bench, arms extended, legs straight (or bent for easier version).",
-      "Lower hips toward the floor by bending elbows to 90°.",
-      "Press back up to the starting position.",
+      "Stand with dumbbells at your sides, slight bend in the elbows.",
+      "Raise arms out to the sides until they're parallel to the floor.",
+      "Pinky side slightly higher than thumb — think 'pouring a glass of water'.",
+      "Lower slowly over 2–3 seconds.",
     ],
     formCues: [
-      "Keep hips close to the bench — drifting forward puts strain on the shoulder.",
-      "Straight legs make it harder; bent knees at 90° reduce the load.",
+      "Avoid shrugging — if your traps are burning, the weight is too heavy.",
+      "Lean forward 10–15° to better align the lateral head of the deltoid.",
     ],
   },
   {
-    id: "d3",
-    name: "Ring Dips",
-    category: "Dips",
-    muscle: "Triceps, Chest, Stabilisers",
+    id: "sh3",
+    name: "Face Pull",
+    category: "Shoulders",
+    muscle: "Rear Deltoids, Rotator Cuff",
     sets: 3,
-    reps: "6–10",
-    difficulty: "Advanced",
-    restSeconds: 90,
-    animKey: "dip",
+    reps: "15–20",
+    difficulty: "Beginner",
+    restSeconds: 60,
     steps: [
-      "Mount the rings with arms straight, turn rings out at the top.",
-      "Lean slightly forward and lower yourself until elbows reach 90°.",
-      "Press up and turn the rings out at full extension to lock out.",
+      "Set a cable pulley to head height with a rope attachment.",
+      "Pull the rope to your face, separating hands at full contraction.",
+      "Elbows stay above wrists throughout the pull.",
+      "Return to full extension with control.",
     ],
     formCues: [
-      "The instability demands far more stabiliser work than fixed bars.",
-      "Master bar dips to at least 10 clean reps before attempting ring dips.",
+      "This exercise is essential for shoulder health and posture — do it every session.",
+      "Use light-to-moderate weight and focus on the rear delt contraction.",
+    ],
+  },
+  {
+    id: "sh4",
+    name: "Arnold Press",
+    category: "Shoulders",
+    muscle: "All Three Deltoid Heads",
+    sets: 3,
+    reps: "10–12",
+    difficulty: "Intermediate",
+    restSeconds: 75,
+    steps: [
+      "Hold dumbbells at chin height, palms facing you.",
+      "As you press up, rotate palms outward so they face forward at the top.",
+      "Fully extend overhead, then reverse the rotation as you lower.",
+    ],
+    formCues: [
+      "The rotation is the key — it recruits all three heads of the deltoid.",
+      "Keep the core tight and avoid leaning back to compensate.",
+    ],
+  },
+
+  // ── Arms ──────────────────────────────────────────────────────────────────
+  {
+    id: "ar1",
+    name: "Barbell Curl",
+    category: "Arms",
+    muscle: "Biceps Brachii",
+    sets: 4,
+    reps: "10–12",
+    difficulty: "Beginner",
+    restSeconds: 60,
+    steps: [
+      "Stand with barbell at arms' length, supinated grip, elbows pinned to your sides.",
+      "Curl the bar toward your shoulders while keeping upper arms completely still.",
+      "Squeeze the biceps hard at the top, then lower with a 3-second count.",
+    ],
+    formCues: [
+      "No body swinging — if you have to swing, the weight is too heavy.",
+      "Full extension at the bottom — partial reps limit bicep stretch.",
+    ],
+  },
+  {
+    id: "ar2",
+    name: "Hammer Curl",
+    category: "Arms",
+    muscle: "Biceps, Brachialis, Forearms",
+    sets: 3,
+    reps: "12–15",
+    difficulty: "Beginner",
+    restSeconds: 60,
+    steps: [
+      "Hold dumbbells with a neutral grip (thumbs up), arms at your sides.",
+      "Curl both or alternating arms keeping the neutral grip throughout.",
+      "Lower fully to a dead hang each rep.",
+    ],
+    formCues: [
+      "The neutral grip shifts emphasis to the brachialis — key for arm thickness.",
+      "Keep elbows tight to your sides — no flaring.",
+    ],
+  },
+  {
+    id: "ar3",
+    name: "Skull Crusher",
+    category: "Arms",
+    muscle: "Triceps (Long Head)",
+    sets: 3,
+    reps: "10–12",
+    difficulty: "Intermediate",
+    restSeconds: 75,
+    steps: [
+      "Lie on a flat bench, hold an EZ-bar or dumbbells above your chest, arms extended.",
+      "Bend only at the elbows to lower the weight toward your forehead.",
+      "Stop just above your head, then press back up via the triceps.",
+    ],
+    formCues: [
+      "Upper arms stay perpendicular to the floor — don't let elbows flare wide.",
+      "Control the eccentric phase — this is where most muscle damage occurs.",
+    ],
+  },
+  {
+    id: "ar4",
+    name: "Tricep Pushdown",
+    category: "Arms",
+    muscle: "Triceps (All Heads)",
+    sets: 3,
+    reps: "12–15",
+    difficulty: "Beginner",
+    restSeconds: 60,
+    steps: [
+      "Stand at a cable with a rope or bar at chest height, elbows pinned at your sides.",
+      "Push the attachment down until arms are fully extended.",
+      "Pause with triceps fully contracted, then let the cable rise under control.",
+    ],
+    formCues: [
+      "Elbows stay stationary — the forearms are the only thing moving.",
+      "For rope pushdowns: separate the rope at the bottom to hit the lateral head.",
+    ],
+  },
+  {
+    id: "ar5",
+    name: "Preacher Curl",
+    category: "Arms",
+    muscle: "Biceps (Peak Contraction)",
+    sets: 3,
+    reps: "10–12",
+    difficulty: "Beginner",
+    restSeconds: 60,
+    steps: [
+      "Sit at the preacher bench, upper arms resting fully on the pad.",
+      "Curl the bar or dumbbell toward your shoulders in a strict arc.",
+      "Lower until arms are nearly straight — don't lock out aggressively.",
+    ],
+    formCues: [
+      "The preacher pad eliminates cheating — every rep is pure bicep work.",
+      "The bottom of the movement provides maximum stretch — control it fully.",
     ],
   },
 
   // ── Legs ──────────────────────────────────────────────────────────────────
   {
-    id: "l1",
-    name: "Bodyweight Squat",
+    id: "le1",
+    name: "Barbell Back Squat",
     category: "Legs",
     muscle: "Quads, Glutes, Hamstrings",
     sets: 4,
-    reps: "20–25",
-    difficulty: "Beginner",
-    restSeconds: 60,
-    animKey: "squat",
-    steps: [
-      "Stand feet shoulder-width apart, toes pointing out 15–30°.",
-      "Brace core, push hips back, and lower until thighs are parallel to the floor.",
-      "Keep chest up and knees tracking over toes throughout.",
-      "Drive through full foot to stand — squeeze glutes at the top.",
-    ],
-    formCues: [
-      "Depth matters — aim for parallel or below for full glute activation.",
-      "If heels rise, stretch the calves or widen stance slightly.",
-    ],
-  },
-  {
-    id: "l2",
-    name: "Jump Squat",
-    category: "Legs",
-    muscle: "Quads, Glutes, Calves (Power)",
-    sets: 4,
-    reps: "12–15",
-    difficulty: "Intermediate",
-    restSeconds: 60,
-    animKey: "squat",
-    steps: [
-      "Perform a standard squat to parallel.",
-      "Drive explosively through the feet to propel yourself off the floor.",
-      "Land softly with bent knees — absorb impact through your whole leg.",
-      "Immediately load back into the next squat upon landing.",
-    ],
-    formCues: [
-      "Land toe-ball-heel — never flat-footed — to protect your joints.",
-      "Rest fully between sets; this is power training, not cardio.",
-    ],
-  },
-  {
-    id: "l3",
-    name: "Pistol Squat",
-    category: "Legs",
-    muscle: "Quads, Glutes, Core (Unilateral)",
-    sets: 3,
-    reps: "4–8 each leg",
+    reps: "6–10",
     difficulty: "Advanced",
-    restSeconds: 90,
-    animKey: "squat",
+    restSeconds: 120,
     steps: [
-      "Stand on one leg, extend the other straight in front of you.",
-      "Lower the standing-leg knee until your hamstring touches your calf.",
-      "Keep the floating leg straight and arms forward for counter-balance.",
-      "Press up to standing — control the whole range.",
+      "Bar resting on upper traps (high bar) or rear deltoids (low bar), feet shoulder-width.",
+      "Break at the hips and knees simultaneously, descending until thighs are parallel or below.",
+      "Keep chest tall and knees tracking over toes throughout.",
+      "Drive through the full foot to stand, squeezing glutes at lockout.",
     ],
     formCues: [
-      "Use a doorframe or TRX for assistance while you build the skill.",
-      "Progressions: box pistol → assisted pistol → full pistol.",
+      "Brace your core like you're about to be punched — this protects your spine.",
+      "If knees cave in, strengthen your glutes and stretch your hip flexors.",
     ],
   },
   {
-    id: "l4",
-    name: "Sumo Squat",
-    category: "Legs",
-    muscle: "Inner Thighs, Glutes",
-    sets: 3,
-    reps: "15–20",
-    difficulty: "Beginner",
-    restSeconds: 60,
-    animKey: "squat",
-    steps: [
-      "Widen stance to 1.5–2× shoulder-width, toes pointing out 45°.",
-      "Lower hips straight down, keeping knees tracking outward.",
-      "Descend until thighs are parallel, then drive up squeezing inner thighs.",
-    ],
-    formCues: [
-      "Keep the torso more upright than a standard squat.",
-      "Push knees out actively — don't let them cave inward.",
-    ],
-  },
-  {
-    id: "l5",
-    name: "Wall Sit",
-    category: "Legs",
-    muscle: "Quads (Isometric)",
-    sets: 3,
-    reps: "45–90s hold",
-    difficulty: "Beginner",
-    restSeconds: 60,
-    animKey: "squat",
-    steps: [
-      "Back flat against the wall, walk feet out until knees are at 90°.",
-      "Thighs should be parallel to the floor, shins vertical.",
-      "Hold the position, breathing steadily for the target duration.",
-    ],
-    formCues: [
-      "The quad burn is normal — it's entirely isometric, embrace it.",
-      "Don't let knees drift in or out — keep them directly over your feet.",
-    ],
-  },
-  {
-    id: "l6",
-    name: "Forward Lunge",
+    id: "le2",
+    name: "Leg Press",
     category: "Legs",
     muscle: "Quads, Glutes",
-    sets: 3,
-    reps: "12 each leg",
+    sets: 4,
+    reps: "12–15",
     difficulty: "Beginner",
-    restSeconds: 60,
-    animKey: "lunge",
+    restSeconds: 90,
     steps: [
-      "Stand tall, step one foot forward about 60–80 cm.",
-      "Lower the back knee toward the floor, keeping front knee above the ankle.",
-      "Pause when both knees are at 90°, then push off the front foot to return.",
+      "Sit in the machine, feet shoulder-width on the platform at mid-height.",
+      "Release the safety handles and lower the platform until knees reach 90°.",
+      "Press back up without locking the knees at full extension.",
     ],
     formCues: [
-      "Keep the torso upright — don't lean over the front knee.",
-      "Front knee must stay directly over the foot, never past the toes.",
+      "Never let your lower back peel off the pad — reduce the range if needed.",
+      "Foot position changes emphasis: high = glutes/hamstrings, low = quads.",
     ],
   },
   {
-    id: "l7",
-    name: "Reverse Lunge",
+    id: "le3",
+    name: "Romanian Deadlift",
     category: "Legs",
-    muscle: "Glutes, Hamstrings, Quads",
+    muscle: "Hamstrings, Glutes, Lower Back",
     sets: 3,
-    reps: "12 each leg",
-    difficulty: "Beginner",
-    restSeconds: 60,
-    animKey: "lunge",
+    reps: "10–12",
+    difficulty: "Intermediate",
+    restSeconds: 90,
     steps: [
-      "Stand tall, step one foot back about 60–80 cm.",
-      "Lower the back knee toward the floor, front shin stays vertical.",
-      "Drive through the front heel to return to standing.",
+      "Stand with barbell at arms' length, feet hip-width, soft knees.",
+      "Hinge at the hips, pushing them back as the bar travels down your legs.",
+      "Lower until you feel a deep hamstring stretch — typically just past the knee.",
+      "Drive hips forward powerfully to return to standing.",
     ],
     formCues: [
-      "Reverse lunges are easier on the knee than forward lunges — start here.",
-      "Don't let the front heel rise as you lower.",
+      "The bar stays in contact with your legs the whole movement.",
+      "Don't confuse with a stiff-leg deadlift — keep the slight knee bend.",
     ],
   },
   {
-    id: "l8",
-    name: "Lateral Lunge",
+    id: "le4",
+    name: "Leg Curl (Machine)",
     category: "Legs",
-    muscle: "Inner Thigh, Glutes, Quads",
+    muscle: "Hamstrings",
     sets: 3,
-    reps: "10 each side",
+    reps: "12–15",
     difficulty: "Beginner",
     restSeconds: 60,
-    animKey: "lunge",
     steps: [
-      "Stand with feet close together, step one foot wide to the side.",
-      "Bend the stepping knee and push the hips back and to that side.",
-      "Keep the other leg straight and foot flat on the floor.",
-      "Push through the bent leg's heel to return to start.",
+      "Lie face-down on the machine, pad resting just above your heels.",
+      "Curl your heels toward your glutes as far as the machine allows.",
+      "Hold the peak contraction for 1 second, then lower fully.",
     ],
     formCues: [
-      "Work the frontal plane — most people neglect it completely.",
-      "Keep chest up and knee tracking over toes on the bent side.",
+      "Point toes slightly — this recruits more of the outer hamstring.",
+      "Don't let your hips rise off the pad during the curl.",
     ],
   },
   {
-    id: "l9",
-    name: "Walking Lunge",
+    id: "le5",
+    name: "Leg Extension (Machine)",
     category: "Legs",
-    muscle: "Quads, Glutes, Balance",
+    muscle: "Quadriceps",
     sets: 3,
-    reps: "20 steps",
+    reps: "12–15",
     difficulty: "Beginner",
     restSeconds: 60,
-    animKey: "lunge",
     steps: [
-      "Step forward into a lunge, lowering the back knee close to the floor.",
-      "Instead of returning, bring the back foot forward through to the next step.",
-      "Continue walking forward alternating legs.",
+      "Sit in the machine, pad resting on your lower shins, knees at 90°.",
+      "Extend legs fully until knees are locked out.",
+      "Squeeze quads hard at the top, then lower with control.",
     ],
     formCues: [
-      "Stay tall — a rounded back defeats the purpose of the movement.",
-      "Use a longer stride to emphasise glutes; shorter stride for quads.",
+      "Full extension is key — stopping short limits the quad contraction.",
+      "Use moderate weight — this is an isolation exercise, not a power movement.",
     ],
   },
   {
-    id: "l10",
-    name: "Jump Lunge",
+    id: "le6",
+    name: "Standing Calf Raise",
     category: "Legs",
-    muscle: "Quads, Glutes, Power",
-    sets: 3,
-    reps: "10 each leg",
-    difficulty: "Advanced",
-    restSeconds: 75,
-    animKey: "lunge",
+    muscle: "Gastrocnemius, Soleus",
+    sets: 4,
+    reps: "15–20",
+    difficulty: "Beginner",
+    restSeconds: 45,
     steps: [
-      "Drop into a lunge position, both knees at 90°.",
-      "Explode upward, switching legs in mid-air.",
-      "Land in a lunge on the opposite side, absorbing impact with soft knees.",
+      "Stand on a step or platform, heels hanging off the edge.",
+      "Lower your heels as far as possible to get a full stretch.",
+      "Rise onto your toes as high as possible and hold 1 second.",
+      "Lower slowly — calves grow from slow, controlled reps.",
     ],
     formCues: [
-      "Land softly and immediately load the lunge — don't pause mid-air.",
-      "If knees hurt, master regular walking lunges first.",
+      "Straight knee = gastrocnemius dominant; bent knee = soleus dominant.",
+      "The deep stretch at the bottom is what most people skip — don't.",
     ],
   },
 
   // ── Core ──────────────────────────────────────────────────────────────────
   {
-    id: "c1",
-    name: "Plank",
+    id: "co1",
+    name: "Cable Crunch",
     category: "Core",
-    muscle: "Transverse Abs, Obliques",
+    muscle: "Rectus Abdominis",
     sets: 3,
-    reps: "45–60s hold",
+    reps: "15–20",
     difficulty: "Beginner",
-    restSeconds: 45,
-    animKey: "plank",
-    steps: [
-      "Forearms on the floor, elbows under shoulders, body in a straight line.",
-      "Brace the core as if bracing for a punch — don't hold your breath.",
-      "Push the floor away with your forearms to engage the serratus.",
-      "Hold for target duration with continuous controlled breathing.",
-    ],
-    formCues: [
-      "Hips level — neither sagging nor piked. Imagine a glass of water on your lower back.",
-      "Squeeze the glutes as well — a tight posterior chain maximises the hold.",
-    ],
-  },
-  {
-    id: "c2",
-    name: "Side Plank",
-    category: "Core",
-    muscle: "Obliques, Hip Abductors",
-    sets: 3,
-    reps: "30–45s each side",
-    difficulty: "Beginner",
-    restSeconds: 45,
-    animKey: "plank",
-    steps: [
-      "Lie on your side, forearm on the floor, elbow under shoulder.",
-      "Lift hips off the ground to form a straight line from head to feet.",
-      "Stack feet or stagger them for stability.",
-      "Hold, breathing steadily — repeat on the other side.",
-    ],
-    formCues: [
-      "Don't let your hip sag or roll forward — the obliques should burn.",
-      "Raise your top arm straight up to increase difficulty.",
-    ],
-  },
-  {
-    id: "c3",
-    name: "Hollow Body Hold",
-    category: "Core",
-    muscle: "Entire Core, Hip Flexors",
-    sets: 3,
-    reps: "30–45s hold",
-    difficulty: "Intermediate",
     restSeconds: 60,
-    animKey: "plank",
     steps: [
-      "Lie on your back, press your lower back firmly into the floor.",
-      "Lift shoulders, arms (reaching overhead), and legs off the floor.",
-      "Keep the lower back pressed down — that is the whole key.",
-      "Hold the position, rock gently if you want extra challenge.",
+      "Kneel in front of a cable, rope attachment at the top.",
+      "Hold the rope beside your head and crunch your elbows toward your knees.",
+      "Round your back fully — the contraction is at the spine, not the hips.",
+      "Return slowly to the start position.",
     ],
     formCues: [
-      "If the lower back lifts, raise legs higher or bend knees slightly.",
-      "The hollow body is the foundation of nearly all gymnastics strength.",
+      "This is a spine flexion exercise — the hips stay still throughout.",
+      "Add weight progressively — the abs respond to load just like any muscle.",
     ],
   },
   {
-    id: "c4",
-    name: "L-Sit",
+    id: "co2",
+    name: "Hanging Leg Raise",
     category: "Core",
-    muscle: "Hip Flexors, Core, Triceps",
+    muscle: "Lower Abs, Hip Flexors",
     sets: 3,
-    reps: "5–15s hold",
-    difficulty: "Advanced",
-    restSeconds: 90,
-    animKey: "plank",
+    reps: "10–15",
+    difficulty: "Intermediate",
+    restSeconds: 75,
     steps: [
-      "Sit on the floor between two chairs or parallel bars, hands beside hips.",
-      "Press into the surface and lift your entire lower body off the floor.",
-      "Extend legs parallel to the ground — hold the L position.",
+      "Hang from a pull-up bar with a dead hang, no swing.",
+      "Raise straight legs to 90° or higher while controlling the movement.",
+      "Posterior tilt the pelvis at the top for maximum lower-ab engagement.",
+      "Lower under control — don't let momentum carry you.",
     ],
     formCues: [
-      "Tuck knees first, then one leg, then both — this is a genuine skill.",
-      "Point toes hard — activates the hamstrings and makes legs more stable.",
+      "Slow negatives (3–4 seconds down) dramatically increase difficulty.",
+      "If straight legs are too hard, bend the knees as a regression.",
     ],
   },
   {
-    id: "c5",
-    name: "Dragon Flag (Progression)",
-    category: "Core",
-    muscle: "Entire Core, Lower Back",
-    sets: 3,
-    reps: "5–8",
-    difficulty: "Advanced",
-    restSeconds: 90,
-    animKey: "plank",
-    steps: [
-      "Lie on a bench, grip a fixed point overhead for support.",
-      "Drive hips up into a shoulder stand — body straight, on upper back only.",
-      "Lower body slowly while keeping the body rigid — do NOT let it fold.",
-      "Stop just before hips touch the bench and raise again.",
-    ],
-    formCues: [
-      "The secret is the lower: never let the lower back break. If it does — stop.",
-      "Build first: tuck dragon flags, then one-leg extended, then full.",
-    ],
-  },
-  {
-    id: "c6",
+    id: "co3",
     name: "Ab Wheel Rollout",
     category: "Core",
     muscle: "Transverse Abs, Serratus, Lats",
@@ -1672,246 +608,97 @@ const EXERCISES: Exercise[] = [
     reps: "8–12",
     difficulty: "Intermediate",
     restSeconds: 75,
-    animKey: "plank",
     steps: [
-      "Kneel with the ab wheel in front of you, hips directly above knees.",
-      "Roll the wheel forward slowly, extending your body toward the floor.",
-      "Keep the core braced — stop before your lower back arches.",
-      "Use your core to pull the wheel back to the start position.",
+      "Kneel with the ab wheel in front, hips above knees.",
+      "Roll out slowly, extending your body toward the floor.",
+      "Keep the core braced — stop before the lower back arches.",
+      "Pull the wheel back to start using the core.",
     ],
     formCues: [
-      "Go as far as you can with a flat back — the range will grow over time.",
-      "Can also be done standing (much harder) — master kneeling first.",
+      "Go only as far as you can maintain a neutral spine.",
+      "Can progress to standing rollouts once you master kneeling.",
     ],
   },
   {
-    id: "c7",
-    name: "Hanging Knee Raise",
+    id: "co4",
+    name: "Plank",
     category: "Core",
-    muscle: "Lower Abs, Hip Flexors",
-    sets: 4,
-    reps: "12–15",
+    muscle: "Entire Core (Isometric)",
+    sets: 3,
+    reps: "45–90s hold",
     difficulty: "Beginner",
-    restSeconds: 60,
-    animKey: "pull",
-    steps: [
-      "Hang from a bar with straight arms, shoulders depressed.",
-      "Draw your knees up toward your chest while keeping the core braced.",
-      "Pause briefly at the top — don't swing.",
-      "Lower with control to a full hang.",
-    ],
-    formCues: [
-      "No swinging! If you swing, pause at the bottom and reset.",
-      "Squeeze the abs intentionally at the top of every rep.",
-    ],
-  },
-  {
-    id: "c8",
-    name: "Hanging Leg Raise",
-    category: "Core",
-    muscle: "Lower Abs, Hip Flexors",
-    sets: 3,
-    reps: "10–12",
-    difficulty: "Intermediate",
-    restSeconds: 75,
-    animKey: "pull",
-    steps: [
-      "Hang from the bar with straight arms, no swing.",
-      "Raise straight legs until they are parallel to the floor (90°).",
-      "Hold 1 second at the top, then lower with control.",
-    ],
-    formCues: [
-      "Straight legs make this dramatically harder than knee raises.",
-      "Posterior tilt the pelvis at the top for maximum lower-ab contraction.",
-    ],
-  },
-  {
-    id: "c9",
-    name: "V-Up",
-    category: "Core",
-    muscle: "Upper & Lower Abs",
-    sets: 3,
-    reps: "15–20",
-    difficulty: "Intermediate",
-    restSeconds: 60,
-    animKey: "plank",
-    steps: [
-      "Lie flat on your back, arms extended overhead, legs straight.",
-      "Simultaneously lift legs and torso — reach hands toward feet.",
-      "Form a V shape at the top, then lower both halves with control.",
-    ],
-    formCues: [
-      "If you feel it in your hip flexors too much, do alternating single-leg V-ups.",
-      "Exhale sharply as you crunch up to fully engage the core.",
-    ],
-  },
-
-  // ── Handstand ─────────────────────────────────────────────────────────────
-  {
-    id: "h1",
-    name: "Wall Handstand Hold",
-    category: "Handstand",
-    muscle: "Shoulders, Triceps, Core",
-    sets: 3,
-    reps: "20–40s hold",
-    difficulty: "Intermediate",
-    restSeconds: 90,
-    animKey: "handstand",
-    steps: [
-      "Place hands ~15–20 cm from the wall, kick up one leg at a time.",
-      "Fully extend arms and engage shoulders actively.",
-      "Press the floor away to create active shoulder elevation.",
-      "Hold body straight — hips, shoulders, and wrists aligned vertically.",
-    ],
-    formCues: [
-      "Arching the back at the wall is normal for beginners — work on straightening over time.",
-      "Open-shoulder hold (chest to wall) is harder and more rewarding.",
-    ],
-  },
-  {
-    id: "h2",
-    name: "Handstand Push-Up (Wall)",
-    category: "Handstand",
-    muscle: "Shoulders, Triceps, Upper Chest",
-    sets: 3,
-    reps: "4–8",
-    difficulty: "Advanced",
-    restSeconds: 120,
-    animKey: "handstand",
-    steps: [
-      "Kick into a wall handstand, hands 15 cm from the wall.",
-      "Bend elbows, lowering head toward the floor between your hands.",
-      "Stop when head lightly touches a foam pad.",
-      "Press back up to full extension powerfully.",
-    ],
-    formCues: [
-      "Build wall handstand holds to 60 seconds before attempting HSPUs.",
-      "Wrists and forearm strength are limiting factors — train them specifically.",
-    ],
-  },
-  {
-    id: "h3",
-    name: "Muscle-Up (Progression)",
-    category: "Handstand",
-    muscle: "Lats, Chest, Triceps, Core",
-    sets: 3,
-    reps: "3–6",
-    difficulty: "Advanced",
-    restSeconds: 120,
-    animKey: "pull",
-    steps: [
-      "Dead hang from the bar, then perform an explosive pull-up pulling the bar to your hips.",
-      "At the apex, lean forward and press the wrists over the bar.",
-      "Transition into a dip position and press to full arm extension.",
-      "Control the descent back to a dead hang.",
-    ],
-    formCues: [
-      "Prerequisites: 10 pull-ups + 10 dips. Build those first.",
-      "The transition (false-grip helps) is the hardest part — drill it with a band.",
-    ],
-  },
-  {
-    id: "h4",
-    name: "Front Lever (Tuck)",
-    category: "Handstand",
-    muscle: "Lats, Core, Rear Deltoids",
-    sets: 3,
-    reps: "10–15s hold",
-    difficulty: "Advanced",
-    restSeconds: 120,
-    animKey: "pull",
-    steps: [
-      "Hang from a bar, then pull hips up to tuck position (knees to chest).",
-      "Extend hips until they are level with the bar — body parallel to floor.",
-      "Tuck knees tightly — hold with a completely flat body position.",
-    ],
-    formCues: [
-      "Straight line from shoulders through hips to knees — no pike.",
-      "Progress from tuck → advanced tuck → one-leg → full front lever.",
-    ],
-  },
-
-  // ── Mobility ──────────────────────────────────────────────────────────────
-  {
-    id: "m1",
-    name: "Shoulder Dislocates",
-    category: "Mobility",
-    muscle: "Shoulder Capsule, Rotator Cuff",
-    sets: 3,
-    reps: "10–15 slow rotations",
-    difficulty: "Beginner",
-    restSeconds: 30,
-    animKey: "stretch",
-    steps: [
-      "Hold a band or broomstick with hands wide (wider than shoulder-width).",
-      "With straight arms, slowly rotate the stick from in front to behind.",
-      "Continue the full rotation overhead and all the way behind, then reverse.",
-    ],
-    formCues: [
-      "Pain means the grip is too narrow — widen until it's smooth.",
-      "Never force range. The range improves with consistent daily practice.",
-    ],
-  },
-  {
-    id: "m2",
-    name: "Hip Flexor Stretch",
-    category: "Mobility",
-    muscle: "Hip Flexors, Psoas",
-    sets: 3,
-    reps: "30–60s each side",
-    difficulty: "Beginner",
-    restSeconds: 30,
-    animKey: "lunge",
-    steps: [
-      "Drop into a kneeling lunge, back knee on the floor.",
-      "Shift the hips forward until you feel a stretch at the front of the hip.",
-      "Keep the torso upright and hold — breathe into the stretch.",
-    ],
-    formCues: [
-      "Posterior tilt the pelvis (tuck the tailbone) to intensify the stretch.",
-      "Tight hip flexors are the number-one cause of lower back pain in desk workers.",
-    ],
-  },
-  {
-    id: "m3",
-    name: "Thoracic Bridge",
-    category: "Mobility",
-    muscle: "Thoracic Spine, Hip Flexors, Shoulders",
-    sets: 3,
-    reps: "6–8 slow reps",
-    difficulty: "Intermediate",
     restSeconds: 45,
-    animKey: "stretch",
     steps: [
-      "Sit on the floor, knees bent, feet flat, hands behind you.",
-      "Drive hips up into a table-top position, head dropping back gently.",
-      "Reach one arm overhead and across to open the thoracic spine.",
-      "Hold 2–3 seconds, then switch sides.",
+      "Forearms on the floor, elbows under shoulders, body in a straight line.",
+      "Brace core as if bracing for a punch — breathe steadily.",
+      "Push the floor away with forearms to engage the serratus.",
+      "Hold for the target duration.",
     ],
     formCues: [
-      "Move from the mid-back (T-spine), not the lower back.",
-      "Progress to a full bridge (hands and feet on the floor) over time.",
+      "Hips level — neither sagging nor piked.",
+      "Squeeze glutes as well for maximum full-body tension.",
+    ],
+  },
+
+  // ── Cardio ────────────────────────────────────────────────────────────────
+  {
+    id: "ca1",
+    name: "Treadmill Intervals",
+    category: "Cardio",
+    muscle: "Cardiovascular System, Legs",
+    sets: 6,
+    reps: "30s sprint / 90s walk",
+    difficulty: "Intermediate",
+    restSeconds: 0,
+    steps: [
+      "Warm up at a comfortable walk/jog pace for 5 minutes.",
+      "Sprint at 80–90% max effort for 30 seconds.",
+      "Recover at a slow walk for 90 seconds.",
+      "Repeat 6–8 rounds, then cool down for 5 minutes.",
+    ],
+    formCues: [
+      "Don't hold the handrails during sprints — it reduces calorie burn and alters gait.",
+      "Land mid-foot, not heel-first, to reduce impact stress.",
     ],
   },
   {
-    id: "m4",
-    name: "World's Greatest Stretch",
-    category: "Mobility",
-    muscle: "Hips, Thoracic Spine, Hamstrings",
-    sets: 3,
-    reps: "5 each side",
+    id: "ca2",
+    name: "Rowing Machine",
+    category: "Cardio",
+    muscle: "Full Body (Legs 60%, Back 30%, Arms 10%)",
+    sets: 1,
+    reps: "20 min steady",
     difficulty: "Beginner",
-    restSeconds: 30,
-    animKey: "stretch",
+    restSeconds: 0,
     steps: [
-      "Step into a long lunge, drop the back knee if needed.",
-      "Place the same-side hand as front foot flat on the floor.",
-      "Rotate and reach the opposite arm toward the ceiling, opening the thoracic spine.",
-      "Pause 2 seconds, then return and repeat on the other side.",
+      "Sit on the rower, strap feet in. Start with legs bent and arms extended.",
+      "Drive with the legs first, then lean back slightly, then pull the handle to lower chest.",
+      "Reverse: extend arms, lean forward, then bend knees to return.",
+      "Maintain a steady 18–22 strokes per minute for endurance.",
     ],
     formCues: [
-      "Rotate through the mid-back, not just the arm. Let the chest follow.",
-      "Do this sequence as a daily warm-up — it counters the effects of sitting.",
+      "The drive sequence is always Legs → Back → Arms. Don't break this.",
+      "80% of the power should come from your legs, not your arms.",
+    ],
+  },
+  {
+    id: "ca3",
+    name: "Battle Ropes",
+    category: "Cardio",
+    muscle: "Shoulders, Core, Conditioning",
+    sets: 5,
+    reps: "20s on / 10s off",
+    difficulty: "Intermediate",
+    restSeconds: 0,
+    steps: [
+      "Hold one end of the rope in each hand, slight squat position.",
+      "Alternate arms to create wave patterns as fast as possible.",
+      "Keep hips low, core tight, and breathe rhythmically.",
+      "Rest 10 seconds between 20-second effort rounds.",
+    ],
+    formCues: [
+      "The closer to the anchor you stand, the heavier the rope feels.",
+      "Don't neglect the legs — use a slight squat to generate power.",
     ],
   },
 ];
@@ -1931,13 +718,25 @@ const DIFFICULTY_STYLE: Record<Difficulty, { color: string; bg: string }> = {
 };
 
 const CATEGORY_COLORS: Record<Exclude<Category, "All">, string> = {
-  Push: "oklch(0.62 0.18 25)",
-  Pull: "oklch(0.55 0.18 240)",
-  Dips: "oklch(0.72 0.15 55)",
-  Legs: "oklch(0.62 0.2 155)",
-  Core: "oklch(0.55 0.18 310)",
-  Handstand: "oklch(0.55 0.14 185)",
-  Mobility: "oklch(0.6 0.15 90)",
+  Chest: "oklch(0.62 0.18 25)",
+  Back: "oklch(0.55 0.18 240)",
+  Shoulders: "oklch(0.72 0.15 55)",
+  Arms: "oklch(0.62 0.2 155)",
+  Legs: "oklch(0.55 0.18 310)",
+  Core: "oklch(0.55 0.14 185)",
+  Cardio: "oklch(0.6 0.15 90)",
+};
+
+// ─── Category icons (simple text labels) ─────────────────────────────────────
+
+const CATEGORY_ICONS: Record<Exclude<Category, "All">, string> = {
+  Chest: "💪",
+  Back: "🏋️",
+  Shoulders: "🔱",
+  Arms: "💎",
+  Legs: "🦵",
+  Core: "⚡",
+  Cardio: "🔥",
 };
 
 // ─── Local storage helpers ────────────────────────────────────────────────────
@@ -2379,7 +1178,6 @@ function SessionView({ exercises, onFinish, onCancel }: SessionProps) {
                     border: "1px solid oklch(0.15 0.01 260)",
                   }}
                 >
-                  {/* Simple circle dot in place of dumbbell */}
                   <div
                     className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                     style={{ background: "oklch(0.35 0.01 260)" }}
@@ -2457,6 +1255,7 @@ function ExerciseCard({ ex, index, isSelected, onToggle }: ExerciseCardProps) {
   const [howToOpen, setHowToOpen] = useState(false);
   const diffStyle = DIFFICULTY_STYLE[ex.difficulty];
   const catColor = CATEGORY_COLORS[ex.category];
+  const catIcon = CATEGORY_ICONS[ex.category];
 
   return (
     <motion.div
@@ -2496,17 +1295,17 @@ function ExerciseCard({ ex, index, isSelected, onToggle }: ExerciseCardProps) {
           </motion.div>
         )}
 
-        {/* Animation container */}
+        {/* Category icon box */}
         <div
-          className="flex-shrink-0 rounded-xl overflow-hidden flex items-center justify-center"
+          className="flex-shrink-0 rounded-xl flex items-center justify-center text-2xl"
           style={{
-            width: 80,
-            height: 80,
-            background: `oklch(from ${catColor} l c h / 0.07)`,
-            border: `1px solid oklch(from ${catColor} l c h / 0.15)`,
+            width: 56,
+            height: 56,
+            background: `oklch(from ${catColor} l c h / 0.1)`,
+            border: `1px solid oklch(from ${catColor} l c h / 0.2)`,
           }}
         >
-          <ExerciseAnimation animKey={ex.animKey} />
+          {catIcon}
         </div>
 
         {/* Info */}
@@ -2668,13 +1467,13 @@ export default function WorkoutPage() {
 
   const CATEGORIES: Category[] = [
     "All",
-    "Push",
-    "Pull",
-    "Dips",
+    "Chest",
+    "Back",
+    "Shoulders",
+    "Arms",
     "Legs",
     "Core",
-    "Handstand",
-    "Mobility",
+    "Cardio",
   ];
 
   const filtered =
@@ -2738,20 +1537,6 @@ export default function WorkoutPage() {
     setSessionActive(false);
     setSessionExercises([]);
   }
-
-  // Inject CSS keyframes once into document head
-  useEffect(() => {
-    const id = "onyx-workout-anim-styles";
-    if (!document.getElementById(id)) {
-      const el = document.createElement("style");
-      el.id = id;
-      el.textContent = ANIM_STYLES;
-      document.head.appendChild(el);
-    }
-    return () => {
-      // leave style in DOM — no cleanup needed
-    };
-  }, []);
 
   if (sessionActive) {
     return (
@@ -2836,19 +1621,19 @@ export default function WorkoutPage() {
                     backgroundClip: "text",
                   }}
                 >
-                  FORGE YOUR
+                  GYM
                 </h1>
                 <h1
                   className="text-2xl font-black tracking-widest leading-none"
                   style={{ color: "oklch(0.72 0.15 55)" }}
                 >
-                  LIMITS
+                  WORKOUT
                 </h1>
                 <p
                   className="text-xs mt-1 tracking-wide"
                   style={{ color: "oklch(0.4 0.012 260)" }}
                 >
-                  Calisthenics · Select exercises · Start session
+                  Select exercises · Build your session · Start
                 </p>
               </div>
 
