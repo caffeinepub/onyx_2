@@ -1,31 +1,32 @@
 # ONYX
 
 ## Current State
-ONYX is a full-stack multi-page app with Chat, Video Feed, VS Studio, News, AI Search, and Web Search pages. Bottom nav has 6 page tabs + Status. Navigation uses PageIndex 0-5.
+ONYX is a full-stack chat + media app with:
+- Chat page with rooms (public + secret), messages, profile customization
+- Video Feed page (shorts, public/private videos, likes/comments/sharing)
+- VS Studio page (channel creation, video uploads, watch analytics)
+- Daily News page (rotated daily articles)
+- Web Search page
+- Workout page (generic exercise tracker with sets/reps/rest timer)
+- Status panel (WhatsApp-style status updates)
 
 ## Requested Changes (Diff)
 
 ### Add
-- A new **Workout** page (PageIndex 6) accessible from the bottom nav
-- Workout page features:
-  - Categorized workout library (Chest, Back, Legs, Arms, Core, Full Body)
-  - Exercise cards with name, sets/reps, muscle group, difficulty level
-  - Ability to start a workout session with a timer
-  - Track completed sets per exercise (tap to mark sets done)
-  - Rest timer between sets (countdown)
-  - Personal workout log / history (stored in localStorage)
-  - Daily workout streak counter
-  - Motivational UI — dark, intense, minimal
+- Calisthenics-only exercise library covering: push-ups (standard, diamond, wide, pike, archer), pull-ups (standard, wide, close, chin-up, L-sit), dips (parallel bar, bench, ring), squats (bodyweight, jump, pistol/single-leg, sumo, wall sit), lunges (forward, reverse, lateral, walking, jumping), core (plank, side plank, hollow body hold, L-sit, dragon flag, ab wheel rollout), handstand (wall handstand, freestanding attempt, handstand push-up), muscle-up (progression steps), and stretch/mobility (shoulder dislocates, hip flexor stretch, thoracic bridge)
+- Small looping CSS/SVG animation for each exercise showing the movement pattern (stick figure or silhouette animation)
+- "How to do it" modal/expandable panel per exercise with step-by-step instructions and form cues
 
 ### Modify
-- `PageNav.tsx` — add Workout tab (Dumbbell icon, page 6)
-- `App.tsx` — add `currentPage === 6 && <WorkoutPage />` render, extend PAGE_X/PAGE_Y maps and PageIndex type
-- `PageNav.tsx` — update PageIndex to include 6
+- WorkoutPage: replace generic gym exercises with the calisthenics library above
+- Exercise cards: show animated how-to inline (small, looping), with a tap to expand full instructions
+- Workout session tracker: remains (sets, reps, rest timer)
 
 ### Remove
-- Nothing removed
+- Any gym/equipment-based exercises from WorkoutPage
 
 ## Implementation Plan
-1. Create `WorkoutPage.tsx` with full workout tracker UI
-2. Update `PageNav.tsx` to add Workout tab with Dumbbell icon (PageIndex 6)
-3. Update `App.tsx` to render WorkoutPage at page 6 and add to PAGE_X/PAGE_Y maps
+1. Build a `CALISTHENICS_EXERCISES` data array with name, muscle group, description, steps[], form cues[], and an animation key
+2. Create `ExerciseAnimation` component: pure CSS keyframe animations (SVG stick figures) per exercise type, looping
+3. Update `WorkoutPage.tsx`: replace exercise list with calisthenics data, render exercise cards with inline animation + expand-to-instructions panel
+4. Keep rest timer and sets/reps tracker intact
