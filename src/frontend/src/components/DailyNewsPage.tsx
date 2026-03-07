@@ -41,9 +41,11 @@ const CATEGORY_BG: Record<Exclude<Category, "All">, string> = {
   Entertainment: "oklch(0.52 0.18 310 / 0.12)",
 };
 
-const MOCK_ARTICLES: NewsArticle[] = [
+// All available articles — rotated daily via date seed
+const ALL_ARTICLES: NewsArticle[] = [
+  // Tech
   {
-    id: "1",
+    id: "t1",
     category: "Tech",
     headline: "OpenAI Unveils Next-Generation Model With Real-Time Reasoning",
     source: "The Verge",
@@ -53,50 +55,7 @@ const MOCK_ARTICLES: NewsArticle[] = [
     url: "https://theverge.com",
   },
   {
-    id: "2",
-    category: "World",
-    headline:
-      "Global Climate Summit Reaches Historic Carbon Reduction Agreement",
-    source: "Reuters",
-    hoursAgo: 2,
-    excerpt:
-      "World leaders from 145 nations signed a landmark agreement to reduce carbon emissions by 65% before 2040, marking the most ambitious climate deal in history following three weeks of tense negotiations.",
-    url: "https://reuters.com",
-  },
-  {
-    id: "3",
-    category: "Business",
-    headline: "Apple Becomes First Company to Reach $4 Trillion Valuation",
-    source: "Bloomberg",
-    hoursAgo: 3,
-    excerpt:
-      "Apple Inc. crossed the historic $4 trillion market cap milestone on Thursday, driven by robust iPhone 16 sales, expanding services revenue, and growing investor confidence in its AI integration roadmap.",
-    url: "https://bloomberg.com",
-  },
-  {
-    id: "4",
-    category: "Sports",
-    headline:
-      "Champions League Final Sets New Global Viewership Record of 1.2B",
-    source: "ESPN",
-    hoursAgo: 4,
-    excerpt:
-      "The UEFA Champions League final between Real Madrid and Manchester City shattered viewership records, with an estimated 1.2 billion viewers tuning in across broadcasts, streams, and public screenings worldwide.",
-    url: "https://espn.com",
-  },
-  {
-    id: "5",
-    category: "Entertainment",
-    headline:
-      'Sci-Fi Epic "Horizon Protocol" Breaks Opening Weekend Box Office',
-    source: "Variety",
-    hoursAgo: 5,
-    excerpt:
-      "The long-awaited sci-fi thriller dominated global box offices with a $380 million opening weekend, positioning it as the highest-grossing film debut of the decade and sparking immediate sequel discussions.",
-    url: "https://variety.com",
-  },
-  {
-    id: "6",
+    id: "t2",
     category: "Tech",
     headline:
       "SpaceX Starship Completes First Commercial Cargo Mission to Moon",
@@ -107,48 +66,7 @@ const MOCK_ARTICLES: NewsArticle[] = [
     url: "https://arstechnica.com",
   },
   {
-    id: "7",
-    category: "World",
-    headline: "WHO Declares End to Three-Year Global Health Emergency",
-    source: "AP News",
-    hoursAgo: 8,
-    excerpt:
-      "The World Health Organization officially declared an end to the international public health emergency that began in 2022, citing falling case numbers, improved healthcare infrastructure, and successful vaccination campaigns.",
-    url: "https://apnews.com",
-  },
-  {
-    id: "8",
-    category: "Business",
-    headline: "Federal Reserve Signals Three Rate Cuts Expected This Year",
-    source: "Wall Street Journal",
-    hoursAgo: 9,
-    excerpt:
-      "Federal Reserve Chair Jerome Powell signaled that three quarter-point rate cuts are likely before year-end, citing falling inflation metrics and a desire to stimulate cautious economic growth without overheating markets.",
-    url: "https://wsj.com",
-  },
-  {
-    id: "9",
-    category: "Entertainment",
-    headline:
-      "Grammy-Winning Artist Drops Surprise Album, Breaks Streaming Records",
-    source: "Rolling Stone",
-    hoursAgo: 10,
-    excerpt:
-      "The surprise 18-track release accumulated 420 million streams in its first 24 hours, obliterating previous records and sending three songs simultaneously to the top of global charts across all major platforms.",
-    url: "https://rollingstone.com",
-  },
-  {
-    id: "10",
-    category: "Sports",
-    headline: "23-Year-Old Becomes Youngest Wimbledon Champion in 40 Years",
-    source: "BBC Sport",
-    hoursAgo: 12,
-    excerpt:
-      "In a stunning five-set final that lasted nearly four hours, the unseeded qualifier became Wimbledon's youngest champion since 1985, defeating the world's top-ranked player with a masterclass in serve-and-volley tennis.",
-    url: "https://bbc.co.uk/sport",
-  },
-  {
-    id: "11",
+    id: "t3",
     category: "Tech",
     headline:
       "Google Quantum Chip Achieves Milestone in Drug Discovery Simulation",
@@ -159,7 +77,84 @@ const MOCK_ARTICLES: NewsArticle[] = [
     url: "https://nature.com",
   },
   {
-    id: "12",
+    id: "t4",
+    category: "Tech",
+    headline:
+      "Meta Announces Neural Interface That Lets You Type With Your Thoughts",
+    source: "Wired",
+    hoursAgo: 3,
+    excerpt:
+      "Meta's non-invasive brain-computer interface achieved 90 words per minute in trials, a major leap forward for accessibility technology and human-computer interaction research.",
+    url: "https://wired.com",
+  },
+  {
+    id: "t5",
+    category: "Tech",
+    headline:
+      "Microsoft Azure Outage Disrupts Global Cloud Services for Six Hours",
+    source: "TechCrunch",
+    hoursAgo: 7,
+    excerpt:
+      "A cascading failure in Microsoft's Azure data centers across North America and Europe left millions of enterprise users unable to access cloud-hosted services during peak business hours.",
+    url: "https://techcrunch.com",
+  },
+  {
+    id: "t6",
+    category: "Tech",
+    headline:
+      "Apple Vision Pro 2 Confirmed With Lighter Design and 8K Displays",
+    source: "9to5Mac",
+    hoursAgo: 11,
+    excerpt:
+      "The second-generation spatial computer weighs 40% less than its predecessor and introduces dual 8K micro-OLED panels, according to supply chain reports and regulatory filings reviewed by analysts.",
+    url: "https://9to5mac.com",
+  },
+  {
+    id: "t7",
+    category: "Tech",
+    headline:
+      "Researchers Achieve Nuclear Fusion Net Energy Gain for Third Time",
+    source: "New Scientist",
+    hoursAgo: 16,
+    excerpt:
+      "A team at the National Ignition Facility produced 3.2 megajoules of energy from a 2.05-megajoule laser input, marking the third consecutive successful ignition and moving fusion power closer to commercial viability.",
+    url: "https://newscientist.com",
+  },
+  {
+    id: "t8",
+    category: "Tech",
+    headline:
+      "Tesla's Full Self-Driving Achieves Level 4 Autonomy Certification in 12 States",
+    source: "Electrek",
+    hoursAgo: 5,
+    excerpt:
+      "Tesla received Level 4 autonomous vehicle certification in twelve US states after completing a mandatory 50,000-mile safety trial, paving the way for fully driverless robotaxi service by year-end.",
+    url: "https://electrek.co",
+  },
+  // World
+  {
+    id: "w1",
+    category: "World",
+    headline:
+      "Global Climate Summit Reaches Historic Carbon Reduction Agreement",
+    source: "Reuters",
+    hoursAgo: 2,
+    excerpt:
+      "World leaders from 145 nations signed a landmark agreement to reduce carbon emissions by 65% before 2040, marking the most ambitious climate deal in history following three weeks of tense negotiations.",
+    url: "https://reuters.com",
+  },
+  {
+    id: "w2",
+    category: "World",
+    headline: "WHO Declares End to Three-Year Global Health Emergency",
+    source: "AP News",
+    hoursAgo: 8,
+    excerpt:
+      "The World Health Organization officially declared an end to the international public health emergency that began in 2022, citing falling case numbers, improved healthcare infrastructure, and successful vaccination campaigns.",
+    url: "https://apnews.com",
+  },
+  {
+    id: "w3",
     category: "World",
     headline:
       "Arctic Sea Ice Reaches Largest Extent in 15 Years, Scientists Say",
@@ -169,7 +164,257 @@ const MOCK_ARTICLES: NewsArticle[] = [
       "Researchers report an unexpected 12% increase in Arctic sea ice coverage compared to the five-year average, attributing the anomaly to shifts in polar wind patterns and cooler Atlantic Ocean surface temperatures.",
     url: "https://nationalgeographic.com",
   },
+  {
+    id: "w4",
+    category: "World",
+    headline: "United Nations Passes Landmark AI Governance Treaty",
+    source: "BBC News",
+    hoursAgo: 4,
+    excerpt:
+      "The UN Security Council unanimously adopted the first binding international framework for artificial intelligence regulation, establishing safety standards, transparency requirements, and enforcement mechanisms for member states.",
+    url: "https://bbc.com",
+  },
+  {
+    id: "w5",
+    category: "World",
+    headline:
+      "Amazon Rainforest Records Lowest Deforestation Rate in Two Decades",
+    source: "The Guardian",
+    hoursAgo: 9,
+    excerpt:
+      "Brazil's National Institute for Space Research reports an 84% drop in Amazon deforestation compared to 2019 peak levels, crediting stricter enforcement, satellite monitoring, and international funding for conservation.",
+    url: "https://theguardian.com",
+  },
+  {
+    id: "w6",
+    category: "World",
+    headline: "G20 Leaders Agree on Global Minimum Tax for Billionaires",
+    source: "Financial Times",
+    hoursAgo: 13,
+    excerpt:
+      "Finance ministers from G20 nations endorsed a framework for a 2% annual minimum wealth tax on individuals with assets exceeding $1 billion, expected to raise $250 billion annually for developing nations.",
+    url: "https://ft.com",
+  },
+  // Business
+  {
+    id: "b1",
+    category: "Business",
+    headline: "Apple Becomes First Company to Reach $4 Trillion Valuation",
+    source: "Bloomberg",
+    hoursAgo: 3,
+    excerpt:
+      "Apple Inc. crossed the historic $4 trillion market cap milestone on Thursday, driven by robust iPhone 16 sales, expanding services revenue, and growing investor confidence in its AI integration roadmap.",
+    url: "https://bloomberg.com",
+  },
+  {
+    id: "b2",
+    category: "Business",
+    headline: "Federal Reserve Signals Three Rate Cuts Expected This Year",
+    source: "Wall Street Journal",
+    hoursAgo: 9,
+    excerpt:
+      "Federal Reserve Chair Jerome Powell signaled that three quarter-point rate cuts are likely before year-end, citing falling inflation metrics and a desire to stimulate cautious economic growth without overheating markets.",
+    url: "https://wsj.com",
+  },
+  {
+    id: "b3",
+    category: "Business",
+    headline: "NVIDIA Reports Record Quarter With $35B in Data Center Revenue",
+    source: "Bloomberg",
+    hoursAgo: 6,
+    excerpt:
+      "NVIDIA's data center segment generated $35.2 billion in quarterly revenue, a 122% year-over-year surge driven by insatiable demand for H100 and Blackwell GPU chips from hyperscale cloud providers.",
+    url: "https://bloomberg.com",
+  },
+  {
+    id: "b4",
+    category: "Business",
+    headline:
+      "Amazon Acquires Robotics Startup for $4.2 Billion to Expand Warehouses",
+    source: "CNBC",
+    hoursAgo: 11,
+    excerpt:
+      "Amazon's acquisition of autonomous warehouse robotics company Agility Robotics will accelerate the deployment of humanoid robots across its fulfillment network, the company announced in its largest acquisition of the year.",
+    url: "https://cnbc.com",
+  },
+  {
+    id: "b5",
+    category: "Business",
+    headline:
+      "Bitcoin Surpasses $150,000 as Institutional Adoption Accelerates",
+    source: "CoinDesk",
+    hoursAgo: 2,
+    excerpt:
+      "Bitcoin hit a new all-time high of $152,400 as pension funds, sovereign wealth funds, and central banks from emerging markets increased allocations to the digital asset amid global currency uncertainty.",
+    url: "https://coindesk.com",
+  },
+  // Sports
+  {
+    id: "s1",
+    category: "Sports",
+    headline:
+      "Champions League Final Sets New Global Viewership Record of 1.2B",
+    source: "ESPN",
+    hoursAgo: 4,
+    excerpt:
+      "The UEFA Champions League final between Real Madrid and Manchester City shattered viewership records, with an estimated 1.2 billion viewers tuning in across broadcasts, streams, and public screenings worldwide.",
+    url: "https://espn.com",
+  },
+  {
+    id: "s2",
+    category: "Sports",
+    headline: "23-Year-Old Becomes Youngest Wimbledon Champion in 40 Years",
+    source: "BBC Sport",
+    hoursAgo: 12,
+    excerpt:
+      "In a stunning five-set final that lasted nearly four hours, the unseeded qualifier became Wimbledon's youngest champion since 1985, defeating the world's top-ranked player with a masterclass in serve-and-volley tennis.",
+    url: "https://bbc.co.uk/sport",
+  },
+  {
+    id: "s3",
+    category: "Sports",
+    headline: "NBA Finals MVP Breaks Michael Jordan's All-Time Scoring Record",
+    source: "ESPN",
+    hoursAgo: 8,
+    excerpt:
+      "In a performance for the ages, the 26-year-old guard surpassed Michael Jordan's legendary scoring mark in Game 6, cementing his legacy as the most prolific scorer in professional basketball history.",
+    url: "https://espn.com",
+  },
+  {
+    id: "s4",
+    category: "Sports",
+    headline:
+      "Formula 1 Introduces New Ground Effect Rules to Boost Overtaking",
+    source: "Autosport",
+    hoursAgo: 15,
+    excerpt:
+      "The FIA unveiled sweeping aerodynamic regulation changes for the 2027 season aimed at increasing on-track overtaking by 40%, following analysis showing that close racing dropped 18% under current technical rules.",
+    url: "https://autosport.com",
+  },
+  {
+    id: "s5",
+    category: "Sports",
+    headline:
+      "World Cup 2026 Host Cities Finalize Stadiums and Transportation Plans",
+    source: "FIFA.com",
+    hoursAgo: 10,
+    excerpt:
+      "All 16 host cities across the US, Canada, and Mexico have submitted final stadium certifications and transportation blueprints for the FIFA World Cup 2026, the largest sporting event in history.",
+    url: "https://fifa.com",
+  },
+  // Entertainment
+  {
+    id: "e1",
+    category: "Entertainment",
+    headline:
+      'Sci-Fi Epic "Horizon Protocol" Breaks Opening Weekend Box Office',
+    source: "Variety",
+    hoursAgo: 5,
+    excerpt:
+      "The long-awaited sci-fi thriller dominated global box offices with a $380 million opening weekend, positioning it as the highest-grossing film debut of the decade and sparking immediate sequel discussions.",
+    url: "https://variety.com",
+  },
+  {
+    id: "e2",
+    category: "Entertainment",
+    headline:
+      "Grammy-Winning Artist Drops Surprise Album, Breaks Streaming Records",
+    source: "Rolling Stone",
+    hoursAgo: 10,
+    excerpt:
+      "The surprise 18-track release accumulated 420 million streams in its first 24 hours, obliterating previous records and sending three songs simultaneously to the top of global charts across all major platforms.",
+    url: "https://rollingstone.com",
+  },
+  {
+    id: "e3",
+    category: "Entertainment",
+    headline:
+      "Netflix Announces 10-Part Series Based on Best-Selling Fantasy Trilogy",
+    source: "Deadline",
+    hoursAgo: 7,
+    excerpt:
+      "Netflix greenlit a $400 million adaptation of the celebrated fantasy series, with the original author serving as showrunner and confirmation that filming begins in New Zealand next spring.",
+    url: "https://deadline.com",
+  },
+  {
+    id: "e4",
+    category: "Entertainment",
+    headline: "Virtual Reality Concert Platform Hits 50 Million Active Users",
+    source: "The Hollywood Reporter",
+    hoursAgo: 14,
+    excerpt:
+      "The VR concert platform reported 50 million monthly active users after its latest live event drew 8 million simultaneous viewers — surpassing traditional stadium capacity by orders of magnitude.",
+    url: "https://hollywoodreporter.com",
+  },
+  {
+    id: "e5",
+    category: "Entertainment",
+    headline: "Legendary Director Announces Final Film After 45-Year Career",
+    source: "IndieWire",
+    hoursAgo: 20,
+    excerpt:
+      "The Oscar-winning filmmaker announced his retirement project will be a sweeping historical epic set during World War I, promising an immersive 4-hour theatrical experience unlike anything previously committed to film.",
+    url: "https://indiewire.com",
+  },
 ];
+
+// Deterministic daily rotation using today's date as seed
+function getDailyArticles(): NewsArticle[] {
+  const today = new Date();
+  const seed =
+    today.getFullYear() * 10000 +
+    (today.getMonth() + 1) * 100 +
+    today.getDate();
+
+  // Seeded shuffle
+  let s = seed;
+  const rand = () => {
+    s = (s * 1664525 + 1013904223) & 0xffffffff;
+    return (s >>> 0) / 0x100000000;
+  };
+
+  const shuffled = [...ALL_ARTICLES].sort(() => rand() - 0.5);
+
+  // Ensure at least 1 from each category in the daily set
+  const categories: Array<Exclude<Category, "All">> = [
+    "Tech",
+    "World",
+    "Business",
+    "Sports",
+    "Entertainment",
+  ];
+  const selected: NewsArticle[] = [];
+  const used = new Set<string>();
+
+  for (const cat of categories) {
+    const catArticles = shuffled.filter(
+      (a) => a.category === cat && !used.has(a.id),
+    );
+    if (catArticles[0]) {
+      selected.push(catArticles[0]);
+      used.add(catArticles[0].id);
+    }
+    if (catArticles[1]) {
+      selected.push(catArticles[1]);
+      used.add(catArticles[1].id);
+    }
+  }
+
+  // Fill to 12 from the rest
+  for (const a of shuffled) {
+    if (selected.length >= 12) break;
+    if (!used.has(a.id)) {
+      selected.push(a);
+      used.add(a.id);
+    }
+  }
+
+  // Re-assign sequential hoursAgo values based on position
+  return selected.slice(0, 12).map((a, i) => ({
+    ...a,
+    hoursAgo: i + 1,
+  }));
+}
 
 const CATEGORIES: Category[] = [
   "All",
@@ -361,7 +606,7 @@ export default function DailyNewsPage({ profile: _profile }: Props) {
     setLoading(true);
     setArticles([]);
     refreshTimerRef.current = setTimeout(() => {
-      setArticles(MOCK_ARTICLES);
+      setArticles(getDailyArticles());
       setLoading(false);
     }, 320);
   }, []);
@@ -570,16 +815,12 @@ export default function DailyNewsPage({ profile: _profile }: Props) {
             className="text-[11px]"
             style={{ color: "oklch(0.3 0.01 260)" }}
           >
-            © {new Date().getFullYear()} ·{" "}
-            <a
-              href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:underline"
-              style={{ color: "oklch(0.4 0.012 260)" }}
-            >
-              caffeine.ai
-            </a>
+            Updated daily ·{" "}
+            {new Date().toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
           </span>
         </div>
       )}

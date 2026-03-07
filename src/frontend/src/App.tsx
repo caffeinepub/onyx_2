@@ -10,16 +10,27 @@ import SetupScreen from "./components/SetupScreen";
 import StatusPanel from "./components/StatusPanel";
 import VSStudioPage from "./components/VSStudioPage";
 import VideoFeedPage from "./components/VideoFeedPage";
+import WebSearchPage from "./components/WebSearchPage";
+import WorkoutPage from "./components/WorkoutPage";
 import { useOnyx } from "./hooks/useOnyx";
 
-// Page map: 0=Chat, 1=VideoFeed, 2=VSStudio, 3=News
+// Page map: 0=Chat, 1=VideoFeed, 2=VSStudio, 3=News, 4=WebSearch, 5=Workout
 const PAGE_X: Record<PageIndex, number> = {
   0: 0,
   1: 100,
   2: 0,
   3: 100,
+  4: 100,
+  5: 100,
 };
-const PAGE_Y: Record<PageIndex, number> = { 0: 0, 1: 0, 2: -100, 3: 0 };
+const PAGE_Y: Record<PageIndex, number> = {
+  0: 0,
+  1: 0,
+  2: -100,
+  3: 0,
+  4: 0,
+  5: 0,
+};
 
 export default function App() {
   const onyx = useOnyx();
@@ -268,6 +279,10 @@ export default function App() {
               {currentPage === 2 && <VSStudioPage profile={onyx.profile!} />}
 
               {currentPage === 3 && <DailyNewsPage profile={onyx.profile!} />}
+
+              {currentPage === 4 && <WebSearchPage />}
+
+              {currentPage === 5 && <WorkoutPage />}
             </motion.div>
           </AnimatePresence>
         </div>

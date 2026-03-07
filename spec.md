@@ -1,21 +1,31 @@
 # ONYX
 
 ## Current State
-ONYX is a full-featured chat and media app with four pages: Chat (0), Video Feed (1), VS Studio (2), and Race/Forza (3). The Race page is a browser-based Forza Horizon 5 clone. Navigation is via bottom PageNav bar and arrow keys.
+ONYX is a full-stack multi-page app with Chat, Video Feed, VS Studio, News, AI Search, and Web Search pages. Bottom nav has 6 page tabs + Status. Navigation uses PageIndex 0-5.
 
 ## Requested Changes (Diff)
 
 ### Add
-- `DailyNewsPage` component: a dedicated "Daily News" page that shows curated daily news headlines, categories, and article previews. Fetches from a public RSS/news feed or renders sample static news cards if no live data is available. Each card shows headline, source, timestamp, category badge, and a brief excerpt. Includes a category filter bar (All, Tech, World, Sports, Business, Entertainment). Cards are clickable and open the article link in a new tab.
+- A new **Workout** page (PageIndex 6) accessible from the bottom nav
+- Workout page features:
+  - Categorized workout library (Chest, Back, Legs, Arms, Core, Full Body)
+  - Exercise cards with name, sets/reps, muscle group, difficulty level
+  - Ability to start a workout session with a timer
+  - Track completed sets per exercise (tap to mark sets done)
+  - Rest timer between sets (countdown)
+  - Personal workout log / history (stored in localStorage)
+  - Daily workout streak counter
+  - Motivational UI — dark, intense, minimal
 
 ### Modify
-- `PageNav.tsx`: Replace the Race tab (page 3, Car icon) with a News tab (page 3, Newspaper icon).
-- `App.tsx`: Remove `ForzaRacingPage` import and render; add `DailyNewsPage` import and render for page 3. Remove the Race entry from PAGE_X/PAGE_Y maps (keep same indices). Update keyboard/swipe navigation comments.
+- `PageNav.tsx` — add Workout tab (Dumbbell icon, page 6)
+- `App.tsx` — add `currentPage === 6 && <WorkoutPage />` render, extend PAGE_X/PAGE_Y maps and PageIndex type
+- `PageNav.tsx` — update PageIndex to include 6
 
 ### Remove
-- `ForzaRacingPage.tsx` is no longer rendered (file can stay but is unused).
+- Nothing removed
 
 ## Implementation Plan
-1. Create `src/frontend/src/components/DailyNewsPage.tsx` with a polished news feed UI — category filter, news cards, loading skeleton, and external link handling.
-2. Update `PageNav.tsx` — swap Car icon for Newspaper, change label from "Race" to "News".
-3. Update `App.tsx` — swap ForzaRacingPage import/render for DailyNewsPage.
+1. Create `WorkoutPage.tsx` with full workout tracker UI
+2. Update `PageNav.tsx` to add Workout tab with Dumbbell icon (PageIndex 6)
+3. Update `App.tsx` to render WorkoutPage at page 6 and add to PAGE_X/PAGE_Y maps
