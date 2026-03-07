@@ -49,6 +49,7 @@ export default function ChatArea({
   onOpenStatus,
 }: Props) {
   const [inputText, setInputText] = useState("");
+  const [sendError, setSendError] = useState(false);
   const [deletedIds, setDeletedIds] = useState<Set<string>>(() =>
     loadDeletedMessages(),
   );
@@ -106,6 +107,7 @@ export default function ChatArea({
     if (!content || isSending) return;
     const alias = encodeAlias(room.id, profile.username);
     setInputText("");
+    setSendError(false);
     try {
       await onSendMessage(alias, content);
       updateLastActive(room.id);
@@ -114,6 +116,7 @@ export default function ChatArea({
       }, 200);
     } catch {
       setInputText(content);
+      setSendError(true);
     }
   }, [inputText, isSending, profile.username, room.id, onSendMessage]);
 
@@ -137,8 +140,8 @@ export default function ChatArea({
     if (!file) return;
     e.target.value = "";
 
-    if (file.size > 10 * 1024 * 1024) {
-      alert("File too large. Maximum 10MB per media.");
+    if (file.size > 1.5 * 1024 * 1024) {
+      alert("File too large. Maximum 1.5MB for chat media.");
       return;
     }
 
@@ -305,10 +308,15 @@ export default function ChatArea({
         style={{ borderTop: "1px solid oklch(0.15 0.008 260)" }}
       >
         <div
-          className="flex items-end gap-1.5 rounded-xl px-2 py-1.5"
+          className="flex items-end gap-1.5 rounded-xl px-2 py-1.5 transition-all"
           style={{
             background: "oklch(0.12 0.008 260)",
-            border: "1px solid oklch(0.2 0.01 260)",
+            border: sendError
+              ? "1px solid oklch(0.7 0.18 27 / 0.6)"
+              : "1px solid oklch(0.2 0.01 260)",
+            boxShadow: sendError
+              ? "0 0 0 3px oklch(0.7 0.18 27 / 0.12)"
+              : "none",
           }}
         >
           {/* Emoji picker */}
@@ -393,17 +401,37 @@ export default function ChatArea({
 
         {/* Error state */}
         <AnimatePresence>
-          {false && (
-            <motion.p
+          {sendError && (
+            <motion.div
               data-ocid="chat.error_state"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="text-xs mt-1.5 px-1"
-              style={{ color: "oklch(0.7 0.18 27)" }}
+              className="flex items-center justify-between mt-1.5 px-2 py-1 rounded-lg"
+              style={{
+                background: "oklch(0.7 0.18 27 / 0.08)",
+                border: "1px solid oklch(0.7 0.18 27 / 0.25)",
+              }}
             >
-              Failed to send message. Please retry.
-            </motion.p>
+              <p className="text-xs" style={{ color: "oklch(0.7 0.18 27)" }}>
+                Failed to send message. Please retry.
+              </p>
+              <button
+                type="button"
+                data-ocid="chat.secondary_button"
+                onClick={() => {
+                  setSendError(false);
+                  handleSend();
+                }}
+                className="text-xs font-medium ml-3 px-2 py-0.5 rounded transition-opacity hover:opacity-80"
+                style={{
+                  color: "oklch(0.08 0.005 260)",
+                  background: "oklch(0.7 0.18 27)",
+                }}
+              >
+                Retry
+              </button>
+            </motion.div>
           )}
         </AnimatePresence>
       </footer>
