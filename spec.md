@@ -1,32 +1,28 @@
 # ONYX
 
 ## Current State
-ONYX is a full-stack chat + media app with:
-- Chat page with rooms (public + secret), messages, profile customization
-- Video Feed page (shorts, public/private videos, likes/comments/sharing)
-- VS Studio page (channel creation, video uploads, watch analytics)
-- Daily News page (rotated daily articles)
-- Web Search page
-- Workout page (generic exercise tracker with sets/reps/rest timer)
-- Status panel (WhatsApp-style status updates)
+The chat system stores messages in a backend Motoko canister. Message deletion is currently handled client-side only via localStorage (`deletedIds`). When a user deletes a message, it only disappears for them -- nobody else sees the deletion.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Calisthenics-only exercise library covering: push-ups (standard, diamond, wide, pike, archer), pull-ups (standard, wide, close, chin-up, L-sit), dips (parallel bar, bench, ring), squats (bodyweight, jump, pistol/single-leg, sumo, wall sit), lunges (forward, reverse, lateral, walking, jumping), core (plank, side plank, hollow body hold, L-sit, dragon flag, ab wheel rollout), handstand (wall handstand, freestanding attempt, handstand push-up), muscle-up (progression steps), and stretch/mobility (shoulder dislocates, hip flexor stretch, thoracic bridge)
-- Small looping CSS/SVG animation for each exercise showing the movement pattern (stick figure or silhouette animation)
-- "How to do it" modal/expandable panel per exercise with step-by-step instructions and form cues
+- Backend `deleteMessage(alias: Text, timestamp: Time)` function that marks a message as deleted for everyone
+- Backend stores a set of deleted message IDs (alias + timestamp)
+- `getAllMessages` returns all messages with a `deleted: Bool` flag (or filters them out server-side)
+- Frontend calls `deleteMessage` on the backend instead of writing to localStorage
+- Any user (not just the sender) can delete any message, and the deletion is visible to all
 
 ### Modify
-- WorkoutPage: replace generic gym exercises with the calisthenics library above
-- Exercise cards: show animated how-to inline (small, looping), with a tap to expand full instructions
-- Workout session tracker: remains (sets, reps, rest timer)
+- `main.mo`: add deleted message tracking and `deleteMessage` endpoint
+- `backend.d.ts`: add `deleteMessage` to the interface, update `Message` type if needed
+- `ChatArea.tsx`: replace `handleDeleteMessage` localStorage logic with backend `deleteMessage` call; re-poll messages to reflect server state
+- `MessageBubble.tsx`: no structural changes needed; deleted state still driven by prop
 
 ### Remove
-- Any gym/equipment-based exercises from WorkoutPage
+- `loadDeletedMessages` / `saveDeletedMessages` localStorage usage for per-message deletion in `ChatArea.tsx`
 
 ## Implementation Plan
-1. Build a `CALISTHENICS_EXERCISES` data array with name, muscle group, description, steps[], form cues[], and an animation key
-2. Create `ExerciseAnimation` component: pure CSS keyframe animations (SVG stick figures) per exercise type, looping
-3. Update `WorkoutPage.tsx`: replace exercise list with calisthenics data, render exercise cards with inline animation + expand-to-instructions panel
-4. Keep rest timer and sets/reps tracker intact
+1. Update `main.mo`: add a `deletedMessages` hash set keyed by `(alias, timestamp)`, add `deleteMessage(alias, timestamp)` public func, mark deleted messages in `getAllMessages` response (return content as empty string or add a `deleted` flag)
+2. Update `backend.d.ts`: add `deleteMessage(alias: string, timestamp: bigint): Promise<void>` to `backendInterface`; add `deleted?: boolean` to `Message`
+3. Update `ChatArea.tsx`: import and call `backend.deleteMessage`; remove localStorage delete logic; derive `isDeleted` from `msg.deleted` field returned by server
+4. Validate and deploy

@@ -12,7 +12,7 @@ export function useGetAllMessages() {
       return msgs;
     },
     enabled: !!actor && !isFetching,
-    refetchInterval: 3000,
+    refetchInterval: 2000,
     staleTime: 0,
   });
 }

@@ -4,9 +4,7 @@ import {
   decodeAlias,
   encodeAlias,
   fileToDataUrl,
-  loadDeletedMessages,
-  makeMessageId,
-  saveDeletedMessages,
+  formatTime,
   updateLastActive,
 } from "@/lib/onyx-utils";
 import { ChevronRight, Hash, Lock, Paperclip, Send } from "lucide-react";
@@ -25,6 +23,14 @@ interface Props {
   onOpenStatus: () => void;
 }
 
+interface PendingMessage {
+  id: string;
+  content: string;
+  timestamp: number;
+  status: "pending";
+  alias: string;
+}
+
 function countActiveUsers(messages: Message[], roomId: string): number {
   const recent = Date.now() - 5 * 60 * 1000; // 5 min window
   const users = new Set<string>();
@@ -39,6 +45,8 @@ function countActiveUsers(messages: Message[], roomId: string): number {
   return users.size;
 }
 
+const DELETE_PREFIX = "__DELETE__:";
+
 export default function ChatArea({
   profile,
   room,
@@ -49,10 +57,7 @@ export default function ChatArea({
   onOpenStatus,
 }: Props) {
   const [inputText, setInputText] = useState("");
-  const [sendError, setSendError] = useState(false);
-  const [deletedIds, setDeletedIds] = useState<Set<string>>(() =>
-    loadDeletedMessages(),
-  );
+  const [pendingMessages, setPendingMessages] = useState<PendingMessage[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -64,21 +69,68 @@ export default function ChatArea({
     return diff < 0n ? -1 : diff > 0n ? 1 : 0;
   });
 
+  // Build a set of deleted message keys from delete-marker messages
+  // Each delete marker has content: __DELETE__:<alias>:<timestamp>
+  const deletedSet = new Set<string>();
+  for (const msg of sortedMessages) {
+    if (msg.content.startsWith(DELETE_PREFIX)) {
+      const rest = msg.content.slice(DELETE_PREFIX.length);
+      // alias can contain colons in theory but timestamp is always last segment
+      // format: __DELETE__:<alias>:<timestamp>
+      // We need to split on the last colon to get timestamp
+      const lastColon = rest.lastIndexOf(":");
+      if (lastColon !== -1) {
+        const alias = rest.slice(0, lastColon);
+        const timestamp = rest.slice(lastColon + 1);
+        deletedSet.add(`${alias}|${timestamp}`);
+      }
+    }
+  }
+
+  // Filter out delete-marker messages from visible list
+  const visibleMessages = sortedMessages.filter(
+    (msg) => !msg.content.startsWith(DELETE_PREFIX),
+  );
+
+  // Remove pending messages that have been confirmed by server
+  // biome-ignore lint/correctness/useExhaustiveDependencies: visibleMessages is recreated each render; using it directly avoids stale closure
+  useEffect(() => {
+    if (pendingMessages.length === 0) return;
+    setPendingMessages((prev) =>
+      prev.filter((pm) => {
+        // Check if a real message with matching content appeared
+        const confirmed = visibleMessages.some((msg) => {
+          const decoded = decodeAlias(msg.alias);
+          if (!decoded) return false;
+          if (decoded.username !== profile.username) return false;
+          const msgTs = Number(msg.timestamp / 1_000_000n);
+          // Match by content and approximate time (within 30s)
+          return (
+            msg.content === pm.content && Math.abs(msgTs - pm.timestamp) < 30000
+          );
+        });
+        return !confirmed;
+      }),
+    );
+  }, [visibleMessages, pendingMessages.length, profile.username]);
+
   // Auto-scroll on new messages
   useEffect(() => {
-    const count = sortedMessages.length;
+    const count = visibleMessages.length + pendingMessages.length;
     if (count > prevCountRef.current) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
       prevCountRef.current = count;
     }
-  }, [sortedMessages.length]);
+  }, [visibleMessages.length, pendingMessages.length]);
 
   // Initial scroll
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally only run when room changes
   useEffect(() => {
-    if (sortedMessages.length > 0) {
+    if (visibleMessages.length > 0) {
       messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
     }
+    // Clear pending messages when switching rooms
+    setPendingMessages([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room.id]);
 
@@ -89,36 +141,60 @@ export default function ChatArea({
     }
   }, [messages.length, room.id]);
 
+  // Delete a message for everyone by posting a delete marker to the backend
   const handleDeleteMessage = useCallback(
-    (alias: string, timestamp: bigint) => {
-      const id = makeMessageId(alias, timestamp);
-      setDeletedIds((prev) => {
-        const next = new Set(prev);
-        next.add(id);
-        saveDeletedMessages(next);
-        return next;
-      });
+    async (alias: string, timestamp: bigint) => {
+      const markerContent = `${DELETE_PREFIX}${alias}:${timestamp.toString()}`;
+      const senderAlias = encodeAlias(room.id, profile.username);
+      try {
+        await onSendMessage(senderAlias, markerContent);
+      } catch {
+        // Silently swallow — delete marker failed to post, no UI needed
+      }
     },
-    [],
+    [room.id, profile.username, onSendMessage],
+  );
+
+  const doSend = useCallback(
+    async (content: string, pendingId: string) => {
+      const alias = encodeAlias(room.id, profile.username);
+      try {
+        await onSendMessage(alias, content);
+        updateLastActive(room.id);
+        // Remove this pending message (server version will appear via polling)
+        setPendingMessages((prev) => prev.filter((m) => m.id !== pendingId));
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 200);
+      } catch {
+        // Silently remove the failed pending message — no retry UI
+        setPendingMessages((prev) => prev.filter((m) => m.id !== pendingId));
+      }
+    },
+    [room.id, profile.username, onSendMessage],
   );
 
   const handleSend = useCallback(async () => {
     const content = inputText.trim();
-    if (!content || isSending) return;
+    if (!content) return;
+
+    const pendingId = `pending-${Date.now()}-${Math.random()}`;
     const alias = encodeAlias(room.id, profile.username);
+
+    // Optimistically add to pending list
+    const newPending: PendingMessage = {
+      id: pendingId,
+      content,
+      timestamp: Date.now(),
+      status: "pending",
+      alias,
+    };
+    setPendingMessages((prev) => [...prev, newPending]);
     setInputText("");
-    setSendError(false);
-    try {
-      await onSendMessage(alias, content);
-      updateLastActive(room.id);
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 200);
-    } catch {
-      setInputText(content);
-      setSendError(true);
-    }
-  }, [inputText, isSending, profile.username, room.id, onSendMessage]);
+
+    // Fire and don't await — non-blocking
+    doSend(content, pendingId);
+  }, [inputText, profile.username, room.id, doSend]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -163,7 +239,7 @@ export default function ChatArea({
 
   const activeUsers = countActiveUsers(allMessages, room.id);
   const isQuiet =
-    sortedMessages.length === 0 &&
+    visibleMessages.length === 0 &&
     Date.now() -
       (Number.parseInt(
         localStorage.getItem(`onyx_last_active_${room.id}`) ?? "0",
@@ -203,21 +279,23 @@ export default function ChatArea({
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={onOpenStatus}
-          className="hidden md:flex items-center gap-1 text-xs transition-colors"
-          style={{ color: "oklch(0.4 0.012 260)" }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = "oklch(0.72 0.15 55)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = "oklch(0.4 0.012 260)";
-          }}
-        >
-          Status
-          <ChevronRight size={13} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onOpenStatus}
+            className="hidden md:flex items-center gap-1 text-xs transition-colors"
+            style={{ color: "oklch(0.4 0.012 260)" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = "oklch(0.72 0.15 55)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = "oklch(0.4 0.012 260)";
+            }}
+          >
+            Status
+            <ChevronRight size={13} />
+          </button>
+        </div>
       </header>
 
       {/* Messages */}
@@ -225,7 +303,7 @@ export default function ChatArea({
         className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3"
         style={{ scrollbarWidth: "thin" }}
       >
-        {sortedMessages.length === 0 ? (
+        {visibleMessages.length === 0 && pendingMessages.length === 0 ? (
           <motion.div
             data-ocid="chat.empty_state"
             initial={{ opacity: 0, scale: 0.95 }}
@@ -267,12 +345,12 @@ export default function ChatArea({
           </motion.div>
         ) : (
           <AnimatePresence initial={false}>
-            {sortedMessages.map((msg, i) => {
+            {visibleMessages.map((msg, i) => {
               const decoded = decodeAlias(msg.alias);
               const username = decoded?.username ?? msg.alias;
               const isOwn = username === profile.username;
-              const msgId = makeMessageId(msg.alias, msg.timestamp);
-              const isDeleted = deletedIds.has(msgId);
+              const deleteKey = `${msg.alias}|${msg.timestamp.toString()}`;
+              const isDeleted = deletedSet.has(deleteKey);
               return (
                 <MessageBubble
                   key={`${msg.alias}-${msg.timestamp}`}
@@ -289,14 +367,67 @@ export default function ChatArea({
                       : undefined
                   }
                   index={i}
-                  onDelete={
-                    isOwn
-                      ? () => handleDeleteMessage(msg.alias, msg.timestamp)
-                      : undefined
-                  }
+                  onDelete={() => handleDeleteMessage(msg.alias, msg.timestamp)}
                 />
               );
             })}
+
+            {/* Pending / optimistic messages */}
+            {pendingMessages.map((pm, i) => (
+              <motion.div
+                key={pm.id}
+                data-ocid={`chat.item.${visibleMessages.length + i + 1}`}
+                initial={{ opacity: 0, x: 16, scale: 0.97 }}
+                animate={{ opacity: 0.55, x: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+                className="flex gap-2.5 items-end max-w-[80%] ml-auto flex-row-reverse"
+              >
+                {/* Own avatar placeholder */}
+                <div
+                  className="rounded-full flex-shrink-0 flex items-center justify-center font-semibold"
+                  style={{
+                    width: 28,
+                    height: 28,
+                    background: "oklch(0.25 0.01 260)",
+                    fontSize: 10,
+                    color: "oklch(0.7 0.01 260)",
+                    border: "1px solid oklch(0.22 0.01 260)",
+                  }}
+                >
+                  {profile.username.slice(0, 2).toUpperCase()}
+                </div>
+
+                <div className="flex flex-col items-end gap-0.5">
+                  {/* Message bubble */}
+                  <div
+                    className="relative rounded-2xl overflow-hidden"
+                    style={{
+                      background: "oklch(0.72 0.15 55 / 0.15)",
+                      border: "1px solid oklch(0.72 0.15 55 / 0.3)",
+                      borderRadius: "18px 18px 4px 18px",
+                      minWidth: "80px",
+                    }}
+                  >
+                    <div className="px-3 py-2 pb-5">
+                      <p
+                        className="text-sm leading-relaxed break-words"
+                        style={{ color: "oklch(0.93 0.01 260)" }}
+                      >
+                        {pm.content}
+                      </p>
+                      <span
+                        className="absolute bottom-1.5 right-2.5 text-[10px] flex items-center gap-1"
+                        style={{ color: "oklch(0.72 0.15 55 / 0.6)" }}
+                      >
+                        <span className="inline-block w-2 h-2 rounded-full border border-current border-t-transparent animate-spin" />
+                        {formatTime(BigInt(pm.timestamp) * 1_000_000n)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
           </AnimatePresence>
         )}
         <div ref={messagesEndRef} />
@@ -311,12 +442,7 @@ export default function ChatArea({
           className="flex items-end gap-1.5 rounded-xl px-2 py-1.5 transition-all"
           style={{
             background: "oklch(0.12 0.008 260)",
-            border: sendError
-              ? "1px solid oklch(0.7 0.18 27 / 0.6)"
-              : "1px solid oklch(0.2 0.01 260)",
-            boxShadow: sendError
-              ? "0 0 0 3px oklch(0.7 0.18 27 / 0.12)"
-              : "none",
+            border: "1px solid oklch(0.2 0.01 260)",
           }}
         >
           {/* Emoji picker */}
@@ -358,8 +484,7 @@ export default function ChatArea({
             onKeyDown={handleKeyDown}
             placeholder={`Message ${room.name}...`}
             rows={1}
-            disabled={isSending}
-            className="flex-1 bg-transparent text-sm outline-none resize-none disabled:opacity-50 leading-relaxed py-2"
+            className="flex-1 bg-transparent text-sm outline-none resize-none leading-relaxed py-2"
             style={{
               color: "oklch(0.93 0.01 260)",
               maxHeight: "120px",
@@ -372,12 +497,12 @@ export default function ChatArea({
             }}
           />
 
-          {/* Send button */}
+          {/* Send button — only disabled when no text, not when isSending */}
           <button
             type="button"
             data-ocid="chat.submit_button"
             onClick={handleSend}
-            disabled={!inputText.trim() || isSending}
+            disabled={!inputText.trim()}
             className="flex-shrink-0 self-end w-8 h-8 rounded-lg flex items-center justify-center transition-all disabled:opacity-25 active:scale-95"
             style={{
               background: inputText.trim()
@@ -398,42 +523,6 @@ export default function ChatArea({
             )}
           </button>
         </div>
-
-        {/* Error state */}
-        <AnimatePresence>
-          {sendError && (
-            <motion.div
-              data-ocid="chat.error_state"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="flex items-center justify-between mt-1.5 px-2 py-1 rounded-lg"
-              style={{
-                background: "oklch(0.7 0.18 27 / 0.08)",
-                border: "1px solid oklch(0.7 0.18 27 / 0.25)",
-              }}
-            >
-              <p className="text-xs" style={{ color: "oklch(0.7 0.18 27)" }}>
-                Failed to send message. Please retry.
-              </p>
-              <button
-                type="button"
-                data-ocid="chat.secondary_button"
-                onClick={() => {
-                  setSendError(false);
-                  handleSend();
-                }}
-                className="text-xs font-medium ml-3 px-2 py-0.5 rounded transition-opacity hover:opacity-80"
-                style={{
-                  color: "oklch(0.08 0.005 260)",
-                  background: "oklch(0.7 0.18 27)",
-                }}
-              >
-                Retry
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </footer>
     </div>
   );

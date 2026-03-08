@@ -111,16 +111,16 @@ export default function MessageBubble({
         />
       )}
 
-      {/* Delete button (own messages only, left of bubble since own messages are right-aligned) */}
-      {isOwn && onDelete && !isDeleted && (
+      {/* Delete button — visible for all messages, always shown */}
+      {onDelete && !isDeleted && (
         <button
           type="button"
           data-ocid={`chat.delete_button.${markerIndex}`}
           onClick={onDelete}
-          className="opacity-0 group-hover:opacity-100 transition-opacity self-center w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+          className="self-center w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-opacity hover:opacity-100 opacity-60"
           style={{
             background: "oklch(0.55 0.2 27 / 0.12)",
-            color: "oklch(0.55 0.2 27)",
+            color: "oklch(0.65 0.2 27)",
           }}
           title="Delete message"
         >

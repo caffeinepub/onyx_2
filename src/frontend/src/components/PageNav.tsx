@@ -1,16 +1,8 @@
-import {
-  Bell,
-  Dumbbell,
-  MessageSquare,
-  Newspaper,
-  Search,
-  Tv2,
-  Video,
-} from "lucide-react";
+import { Bell, Dumbbell, MessageSquare, Newspaper, Search } from "lucide-react";
 import { motion } from "motion/react";
 
-export type PageIndex = 0 | 1 | 2 | 3 | 4 | 5;
-// 0 = Chat, 1 = Video Feed, 2 = VS Studio, 3 = News, 4 = Web Search, 5 = Workout
+export type PageIndex = 0 | 1 | 2 | 3;
+// 0 = Chat, 1 = News, 2 = Search, 3 = Workout
 
 interface NavItem {
   page: PageIndex;
@@ -20,11 +12,9 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { page: 0, icon: <MessageSquare size={18} />, label: "Chat" },
-  { page: 1, icon: <Video size={18} />, label: "Feed" },
-  { page: 2, icon: <Tv2 size={18} />, label: "Studio" },
-  { page: 3, icon: <Newspaper size={18} />, label: "News" },
-  { page: 4, icon: <Search size={18} />, label: "Search" },
-  { page: 5, icon: <Dumbbell size={18} />, label: "Workout" },
+  { page: 1, icon: <Newspaper size={18} />, label: "News" },
+  { page: 2, icon: <Search size={18} />, label: "Search" },
+  { page: 3, icon: <Dumbbell size={18} />, label: "Workout" },
 ];
 
 interface Props {

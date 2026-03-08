@@ -8,28 +8,22 @@ import PageNav, { type PageIndex } from "./components/PageNav";
 import RoomSidebar from "./components/RoomSidebar";
 import SetupScreen from "./components/SetupScreen";
 import StatusPanel from "./components/StatusPanel";
-import VSStudioPage from "./components/VSStudioPage";
-import VideoFeedPage from "./components/VideoFeedPage";
 import WebSearchPage from "./components/WebSearchPage";
 import WorkoutPage from "./components/WorkoutPage";
 import { useOnyx } from "./hooks/useOnyx";
 
-// Page map: 0=Chat, 1=VideoFeed, 2=VSStudio, 3=News, 4=WebSearch, 5=Workout
+// Page map: 0=Chat, 1=News, 2=Search, 3=Workout
 const PAGE_X: Record<PageIndex, number> = {
   0: 0,
   1: 100,
-  2: 0,
+  2: 100,
   3: 100,
-  4: 100,
-  5: 100,
 };
 const PAGE_Y: Record<PageIndex, number> = {
   0: 0,
   1: 0,
-  2: -100,
+  2: 0,
   3: 0,
-  4: 0,
-  5: 0,
 };
 
 export default function App() {
@@ -68,8 +62,6 @@ export default function App() {
 
       if (e.key === "ArrowRight") {
         setCurrentPage(1);
-      } else if (e.key === "ArrowUp") {
-        setCurrentPage(2);
       } else if (e.key === "ArrowDown") {
         setCurrentPage(0);
       }
@@ -103,12 +95,12 @@ export default function App() {
       if (absDx > absDy && absDx > threshold) {
         // Horizontal swipe
         if (dx < 0)
-          setCurrentPage(1); // swipe left → video feed
+          setCurrentPage(1); // swipe left → news
         else setCurrentPage(0); // swipe right → chat
       } else if (absDy > absDx && absDy > threshold) {
         // Vertical swipe
         if (dy < 0)
-          setCurrentPage(2); // swipe up → studio
+          setCurrentPage(2); // swipe up → search
         else setCurrentPage(0); // swipe down → chat
       }
     };
@@ -274,15 +266,11 @@ export default function App() {
                 </main>
               )}
 
-              {currentPage === 1 && <VideoFeedPage profile={onyx.profile!} />}
+              {currentPage === 1 && <DailyNewsPage profile={onyx.profile!} />}
 
-              {currentPage === 2 && <VSStudioPage profile={onyx.profile!} />}
+              {currentPage === 2 && <WebSearchPage />}
 
-              {currentPage === 3 && <DailyNewsPage profile={onyx.profile!} />}
-
-              {currentPage === 4 && <WebSearchPage />}
-
-              {currentPage === 5 && <WorkoutPage />}
+              {currentPage === 3 && <WorkoutPage />}
             </motion.div>
           </AnimatePresence>
         </div>
